@@ -638,7 +638,7 @@ async function callClaude(user,system=''){
 // GEMINI API (Text)
 // ═══════════════════════════════════════
 async function callGemini(model,prompt,cfg={}){
-  const body={model,contents:[{parts:[{text:prompt}]}]};
+  const body={model,prompt};
   if(Object.keys(cfg).length) body.generationConfig=cfg;
   const r=await fetch('/api/gemini',{
     method:'POST',headers:{'Content-Type':'application/json'},
@@ -958,7 +958,7 @@ async function genImg(){
   const ph=area.querySelector('.empty'); if(ph) ph.remove();
   const card=document.createElement('div'); card.className='vcard';
   const energyLabel={nano:'Nano · Flux Schnell',flash:'Flash · Flux Dev',pro:'Pro · Flux Pro'}[energy];
-  card.innerHTML=`<div class="vimg"><div class="vph"><div class="spin"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><span>Generiere… (${energyLabel})</span></div></div><div class="vbody"><div class="vpt">${prompt.substring(0,80)}${prompt.length>80?'…':''}</div><div class="vbtns"></div></div>`;
+  card.innerHTML=`<div class="vimg" id="vimg-${Date.now()}"><div class="vph"><div class="spin"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><span>Generiere…</span></div></div><div class="vbody"><div class="vpt">${prompt.substring(0,80)}${prompt.length>80?'…':''}</div><div class="vbtns"></div></div>`;
   area.prepend(card); curVCard=card;
   showAI('Bild wird generiert…');
   try{
@@ -966,9 +966,13 @@ async function genImg(){
     // Nano + Flash immer Flux; Pro je nach Umschalter
     if(energy==='pro' && imgProv==='imagen4') url=await genImagen4(prompt);
     else url=await genFal(prompt);
-    const img=document.createElement('img'); img.src=url;
-    img.style.cssText='width:100%;height:100%;object-fit:cover;display:block';
-    card.querySelector('.vimg').innerHTML=''; card.querySelector('.vimg').appendChild(img);
+    const imgEl=document.createElement('img');
+    imgEl.src=url;
+    imgEl.style.cssText='width:100%;height:100%;object-fit:cover;display:block';
+    imgEl.onerror=()=>{imgEl.alt='Bild konnte nicht geladen werden';};
+    const vimgDiv=card.querySelector('.vimg');
+    vimgDiv.innerHTML='';
+    vimgDiv.appendChild(imgEl);
     card.dataset.prompt=prompt; card.dataset.url=url;
     addVBtns(card);
     saveVProj(document.getElementById('dtitle').value.trim()||prompt.substring(0,30),url);
@@ -987,7 +991,7 @@ async function genFal(prompt){
   // Proxy-Aufruf (Vercel) – kein CORS-Problem
   const r=await fetch('/api/image',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt,model,image_size:size,num_inference_steps:steps,key})
+    body:JSON.stringify({prompt,model,image_size:size,num_inference_steps:steps})
   });
   if(!r.ok){
     const e=await r.json().catch(()=>({}));
@@ -1001,7 +1005,6 @@ async function genFal(prompt){
 
 // ── Google Imagen 4 (bereit wenn Google freigibt) ──
 async function genImagen4(prompt){
-  const key=gKey(); if(!key){openSet();throw new Error('Kein Google API-Schlüssel')}
   // Stufe Pro: Prompt-Enhancer via Gemini vorschalten
   let finalPrompt=prompt;
   if(energy==='pro'){
@@ -1026,7 +1029,7 @@ async function genImagen4(prompt){
   // Proxy-Aufruf (Vercel) – kein CORS-Problem
   const r=await fetch('/api/imagen4',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt:finalPrompt,model,aspectRatio,key})
+    body:JSON.stringify({prompt:finalPrompt,model,aspectRatio})
   });
   if(!r.ok){
     const e=await r.json().catch(()=>({}));
