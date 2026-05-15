@@ -10,48 +10,72 @@ export default async function handler(req, res) {
   const key = process.env.GOOGLE_KEY;
   if (!key) { res.status(500).json({ error: 'GOOGLE_KEY nicht konfiguriert' }); return; }
 
-  const langCode = lang || 'de-DE';
-
-  // Versuche Kore mit gemini-2.5-flash-preview
-  const koreModels = [
-    'gemini-2.5-flash-preview-tts',
-    'gemini-2.0-flash-exp',
-    'gemini-1.5-flash'
-  ];
-
-  for (const koreModel of koreModels) {
-    try {
-      const r = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${koreModel}:generateContent?key=${key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: text.substring(0, 5000) }] }],
-            generationConfig: {
-              responseModalities: ['AUDIO'],
-              speechConfig: {
-                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } }
+  // ── Versuch 1: Kore-Stimme via gemini-3.1-flash-tts-preview ──
+  try {
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: text.substring(0, 5000) }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: 'Kore' }
               }
             }
-          })
-        }
-      );
-      const data = await r.json();
-      const part = data.candidates?.[0]?.content?.parts?.[0];
-      const b64 = part?.inlineData?.data;
-      const mime = part?.inlineData?.mimeType || 'audio/wav';
-      if (b64) {
-        res.status(200).json({ audioContent: b64, mime, source: 'kore-'+koreModel });
-        return;
+          }
+        })
       }
-    } catch(e) {
-      console.warn(`${koreModel} Fehler:`, e.message);
+    );
+    const data = await r.json();
+    const part = data.candidates?.[0]?.content?.parts?.[0];
+    const b64 = part?.inlineData?.data;
+    const mime = part?.inlineData?.mimeType || 'audio/wav';
+    if (b64) {
+      res.status(200).json({ audioContent: b64, mime, source: 'kore' });
+      return;
     }
+    console.warn('Kore: kein Audio, Antwort:', JSON.stringify(data).substring(0, 200));
+  } catch(e) {
+    console.warn('Kore Fehler:', e.message);
   }
 
-  // Fallback: Google Cloud TTS Neural2-C
+  // ── Versuch 2: Fallback gemini-2.0-flash-exp ──
   try {
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: text.substring(0, 5000) }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } }
+            }
+          }
+        })
+      }
+    );
+    const data = await r.json();
+    const part = data.candidates?.[0]?.content?.parts?.[0];
+    const b64 = part?.inlineData?.data;
+    const mime = part?.inlineData?.mimeType || 'audio/wav';
+    if (b64) {
+      res.status(200).json({ audioContent: b64, mime, source: 'kore-exp' });
+      return;
+    }
+  } catch(e) {
+    console.warn('Kore-exp Fehler:', e.message);
+  }
+
+  // ── Versuch 3: Google Cloud TTS Neural2-C ──
+  try {
+    const langCode = lang || 'de-DE';
     const r = await fetch(
       `https://texttospeech.googleapis.com/v1/text:synthesize?key=${key}`,
       {
@@ -73,5 +97,5 @@ export default async function handler(req, res) {
     console.warn('Neural2 Fehler:', e.message);
   }
 
-  res.status(500).json({ error: 'TTS nicht verfügbar' });
+  res.status(500).json({ error: 'Keine TTS-Methode verfügbar' });
 }
