@@ -10,17 +10,19 @@ export default async function handler(req, res) {
   const key = process.env.GOOGLE_KEY;
   if (!key) { res.status(500).json({ error: 'GOOGLE_KEY nicht konfiguriert' }); return; }
 
-  const selectedModel = model || 'gemini-1.5-pro';
-  
+  // Aktuelle Gemini Modellnamen (Mai 2026)
+  const modelMap = {
+    'gemini-1.5-pro': 'gemini-2.0-flash',
+    'gemini-1.5-flash': 'gemini-2.0-flash',
+    'gemini-pro': 'gemini-2.0-flash',
+  };
+  const selectedModel = modelMap[model] || model || 'gemini-2.0-flash';
+
   const body = {
     contents: [{ role: 'user', parts: [{ text: prompt }] }]
   };
-  if (system) {
-    body.systemInstruction = { parts: [{ text: system }] };
-  }
-  if (generationConfig) {
-    body.generationConfig = generationConfig;
-  }
+  if (system) body.systemInstruction = { parts: [{ text: system }] };
+  if (generationConfig) body.generationConfig = generationConfig;
 
   try {
     const r = await fetch(
