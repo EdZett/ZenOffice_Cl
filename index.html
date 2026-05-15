@@ -392,22 +392,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
     <div class="mhd"><h3>Einstellungen</h3><button class="ib" onclick="closeM('set-ovl')"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="mbody">
       <div class="sg">
-        <div class="sgl">Claude API (Text &amp; Tabelle)</div>
-        <div class="sgd">Von <a href="https://console.anthropic.com" target="_blank" style="color:var(--gold)">console.anthropic.com</a> → API-Schlüssel abrufen</div>
-        <input type="password" class="sgi" id="k-c" placeholder="sk-ant-…" autocomplete="off">
+        <div class="sgl">API-Schlüssel</div>
+        <div class="sgd" style="background:var(--bg3);padding:11px;border-radius:8px;border:1px solid var(--border)">
+          🔒 Alle Schlüssel sind sicher in Vercel hinterlegt – du musst sie hier nicht eingeben.<br>
+          Claude · Google · fal.ai sind aktiv und bereit.
+        </div>
       </div>
-      <div class="sg">
-        <div class="sgl">Google API (Übersetzung &amp; Vorlesen)</div>
-        <div class="sgd">Von <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--gold)">aistudio.google.com</a> → API-Schlüssel erstellen<br>Wird für Gemini 1.5 Pro (Übersetzung) und Google Cloud TTS (Vorlesen) genutzt.</div>
-        <input type="password" class="sgi" id="k-g" placeholder="AIza…" autocomplete="off">
-      </div>
-      <div class="sg">
-        <div class="sgl">fal.ai API (Bildgenerierung – empfohlen)</div>
-        <div class="sgd">Von <a href="https://fal.ai/dashboard/keys" target="_blank" style="color:var(--gold)">fal.ai/dashboard/keys</a> → Key erstellen<br>
-        Nano: Flux Schnell (blitzschnell) · Flash: Flux Dev (gut) · Pro: Flux Pro 1.1 (beste Qualität)</div>
-        <input type="password" class="sgi" id="k-f" placeholder="…" autocomplete="off">
-      </div>
-
       <div class="sg">
         <div class="sgl">Pro-Stufe Bildgenerator</div>
         <div class="sgd">Nano und Flash nutzen immer fal.ai Flux. Nur für die Pro-Stufe kannst du wählen:</div>
@@ -685,47 +675,56 @@ async function toggleSpeak(){
   }
   const text=document.getElementById('editor').innerText.trim();
   if(!text) return;
-  // ── Google TTS via Vercel Proxy (Kore oder Neural2-C) ──
-  {
-    showAI('Stimme wird geladen…'); btn.innerHTML='⏳';
-    try{
-      // Teile langen Text in Abschnitte (max 4800 Zeichen)
-      const chunks=[];
-      let rem=text;
-      while(rem.length>0){chunks.push(rem.substring(0,4800));rem=rem.substring(4800)}
-      const audios=[];
-      for(const chunk of chunks.slice(0,5)){
-        // Proxy-Aufruf (Vercel) – kein CORS-Problem
-        const r=await fetch('/api/tts',{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({text:chunk,lang:'de-DE'})
-        });
-        if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er?.error||'TTS Fehler '+r.status)}
-        const d=await r.json();
-        if(d.audioContent) audios.push('data:audio/mp3;base64,'+d.audioContent);
-      }
-      if(audios.length===0) throw new Error('Kein Audio erhalten');
-      hideAI();
-      // Kette der Audiodateien abspielen
-      let idx=0;
-      const playNext=()=>{
-        if(idx>=audios.length){speaking=false;btn.innerHTML=PLAY_SVG;stat.innerHTML='';ttsAudio=null;return}
-        ttsAudio=new Audio(audios[idx++]);
-        ttsAudio.onended=playNext;
-        ttsAudio.play().catch(e=>console.warn(e));
-      };
-      speaking=true; btn.innerHTML=STOP_SVG;
-      stat.innerHTML='<span class="spill mint">▶ Google Neural2</span>';
-      playNext(); return;
-    }catch(ex){
-      hideAI();
-      console.warn('Google TTS Fehler:',ex.message);
-      // Zeige Fehler kurz an, dann Browser-Fallback
+
+  // Browser Audio sofort entsperren (synchron im Click-Handler)
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const buf=ctx.createBuffer(1,1,22050);
+    const src=ctx.createBufferSource();
+    src.buffer=buf; src.connect(ctx.destination); src.start(0);
+    setTimeout(()=>ctx.close(),500);
+  }catch(e){}
+
+  btn.innerHTML=STOP_SVG;
+  stat.innerHTML='<span class="spill mint">⏳ Lädt…</span>';
+  showAI('Stimme wird geladen…');
+
+  try{
+    const chunks=[];
+    let rem=text;
+    while(rem.length>0){chunks.push(rem.substring(0,4800));rem=rem.substring(4800)}
+    const audios=[];
+    for(const chunk of chunks.slice(0,5)){
+      const r=await fetch('/api/tts',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text:chunk,lang:'de-DE'})
+      });
+      if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er?.error||'TTS Fehler '+r.status)}
+      const d=await r.json();
+      const mime=d.mime||'audio/mp3';
+      if(d.audioContent) audios.push(`data:${mime};base64,${d.audioContent}`);
     }
+    if(audios.length===0) throw new Error('Kein Audio erhalten');
+    hideAI();
+    speaking=true;
+    stat.innerHTML='<span class="spill mint">▶ Google Stimme</span>';
+    let idx=0;
+    const playNext=()=>{
+      if(idx>=audios.length){speaking=false;btn.innerHTML=PLAY_SVG;stat.innerHTML='';ttsAudio=null;return}
+      ttsAudio=new Audio(audios[idx++]);
+      ttsAudio.onended=playNext;
+      ttsAudio.onerror=()=>{console.warn('Audio Fehler');playNext()};
+      const p=ttsAudio.play();
+      if(p&&p.catch) p.catch(e=>{console.warn('Play blockiert:',e.message);playNext()});
+    };
+    playNext(); return;
+  }catch(ex){
+    hideAI();
+    console.warn('TTS Fehler:',ex.message);
+    speaking=false; btn.innerHTML=PLAY_SVG; stat.innerHTML='';
   }
 
-  // ── Browser SpeechSynthesis (Fallback) ──
-  hideAI();
+  // Browser SpeechSynthesis Fallback
   const u=new SpeechSynthesisUtterance(text);
   u.lang='de-DE'; u.rate=0.92; u.pitch=1;
   const vs=speechSynthesis.getVoices();
@@ -736,6 +735,7 @@ async function toggleSpeak(){
   u.onend=()=>{speaking=false;btn.innerHTML=PLAY_SVG;stat.innerHTML=''};
   speechSynthesis.speak(u);
 }
+
 
 // ═══════════════════════════════════════
 // DIKTAT
