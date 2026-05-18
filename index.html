@@ -670,66 +670,70 @@ async function toggleSpeak(){
   const stat=document.getElementById('sspk');
   if(speaking){
     if(ttsAudio){ttsAudio.pause();ttsAudio=null}
-    speechSynthesis.cancel();
     speaking=false; btn.innerHTML=PLAY_SVG; stat.innerHTML=''; return;
   }
   const text=document.getElementById('editor').innerText.trim();
   if(!text) return;
 
-  // Browser Audio sofort entsperren (synchron im Click-Handler)
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    const buf=ctx.createBuffer(1,1,22050);
-    const src=ctx.createBufferSource();
-    src.buffer=buf; src.connect(ctx.destination); src.start(0);
-    setTimeout(()=>ctx.close(),500);
-  }catch(e){}
-
+  speaking=true;
   btn.innerHTML=STOP_SVG;
   stat.innerHTML='<span class="spill mint">⏳ Lädt…</span>';
-  showAI('Stimme wird geladen…');
+  showAI('Kore-Stimme wird geladen…');
 
   try{
-    const chunks=[];
-    let rem=text;
-    while(rem.length>0){chunks.push(rem.substring(0,4800));rem=rem.substring(4800)}
-    const audios=[];
-    for(const chunk of chunks.slice(0,5)){
-      const r=await fetch('/api/tts',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({text:chunk,lang:'de-DE'})
-      });
-      if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er?.error||'TTS Fehler '+r.status)}
-      const d=await r.json();
-      const mime=d.mime||'audio/mp3';
-      if(d.audioContent) audios.push(`data:${mime};base64,${d.audioContent}`);
+    const r=await fetch('/api/tts',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:text.substring(0,4800)})
+    });
+    if(!r.ok){
+      const er=await r.json().catch(()=>({}));
+      throw new Error(er?.error||'TTS Fehler '+r.status);
     }
-    if(audios.length===0) throw new Error('Kein Audio erhalten');
+    const d=await r.json();
+    if(!d.audioContent) throw new Error('Kein Audio erhalten');
+    
+    const mime=d.mime||'audio/wav';
+    const src=`data:${mime};base64,${d.audioContent}`;
     hideAI();
-    speaking=true;
-    stat.innerHTML='<span class="spill mint">▶ Google Stimme</span>';
-    let idx=0;
-    const playNext=()=>{
-      if(idx>=audios.length){speaking=false;btn.innerHTML=PLAY_SVG;stat.innerHTML='';ttsAudio=null;return}
-      ttsAudio=new Audio(audios[idx++]);
-      ttsAudio.onended=playNext;
-      ttsAudio.onerror=()=>{console.warn('Audio Fehler');playNext()};
-      const p=ttsAudio.play();
-      if(p&&p.catch) p.catch(e=>{console.warn('Play blockiert:',e.message);playNext()});
+    
+    ttsAudio=new Audio(src);
+    ttsAudio.onended=()=>{speaking=false;btn.innerHTML=PLAY_SVG;stat.innerHTML='';ttsAudio=null};
+    ttsAudio.onerror=(e)=>{
+      console.warn('Audio Fehler:',e);
+      speaking=false;btn.innerHTML=PLAY_SVG;stat.innerHTML='';ttsAudio=null;
     };
-    playNext(); return;
+    
+    const label=d.source&&d.source.includes('tts')?'▶ Kore':'▶ Google';
+    stat.innerHTML=`<span class="spill mint">${label}</span>`;
+    
+    const playPromise=ttsAudio.play();
+    if(playPromise) playPromise.catch(e=>{
+      console.warn('Play Fehler:',e.message);
+      // Letzter Ausweg: Blob URL
+      try{
+        const bytes=atob(d.audioContent);
+        const arr=new Uint8Array(bytes.length);
+        for(let i=0;i<bytes.length;i++) arr[i]=bytes.charCodeAt(i);
+        const blob=new Blob([arr],{type:mime});
+        const url=URL.createObjectURL(blob);
+        ttsAudio=new Audio(url);
+        ttsAudio.onended=()=>{speaking=false;btn.innerHTML=PLAY_SVG;stat.innerHTML='';URL.revokeObjectURL(url)};
+        ttsAudio.play().catch(e2=>console.warn('Blob Play Fehler:',e2));
+      }catch(e2){console.warn('Blob Fehler:',e2)}
+    });
+    return;
   }catch(ex){
     hideAI();
     console.warn('TTS Fehler:',ex.message);
     speaking=false; btn.innerHTML=PLAY_SVG; stat.innerHTML='';
   }
 
-  // Browser SpeechSynthesis Fallback
+  // Fallback: Browser SpeechSynthesis
   const u=new SpeechSynthesisUtterance(text);
   u.lang='de-DE'; u.rate=0.92; u.pitch=1;
   const vs=speechSynthesis.getVoices();
-  const v=vs.find(v=>v.name.toLowerCase().includes('google')&&v.lang.startsWith('de'))||
-           vs.find(v=>v.lang.startsWith('de'));
+  const v=vs.find(v=>v.name.toLowerCase().includes('google')&&v.lang.startsWith('de'))||vs.find(v=>v.lang.startsWith('de'));
   if(v) u.voice=v;
   u.onstart=()=>{speaking=true;btn.innerHTML=STOP_SVG;stat.innerHTML='<span class="spill gold">▶ Browser</span>'};
   u.onend=()=>{speaking=false;btn.innerHTML=PLAY_SVG;stat.innerHTML=''};
@@ -984,22 +988,18 @@ async function genImg(){
 
 // ── fal.ai Flux – Nano/Flash/Pro ──
 async function genFal(prompt){
-  // Key kommt vom Server
-  const model=FAL[energy];
-  const size=IMG_SIZES[imgSz].fal;
-  const steps=FAL_STEPS[energy];
-  // Proxy-Aufruf (Vercel) – kein CORS-Problem
+  // Google Nano Banana + fal.ai Fallback via Vercel Proxy
   const r=await fetch('/api/image',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt,model,image_size:size,num_inference_steps:steps})
+    body:JSON.stringify({prompt,energy,image_size:IMG_SIZES[imgSz].fal,num_inference_steps:FAL_STEPS[energy],model:FAL[energy]})
   });
   if(!r.ok){
     const e=await r.json().catch(()=>({}));
-    throw new Error('fal.ai: '+(e?.error||'HTTP '+r.status));
+    throw new Error(e?.error||'Bild Fehler HTTP '+r.status);
   }
   const d=await r.json();
   const url=d.images?.[0]?.url||d.image?.url;
-  if(!url) throw new Error('fal.ai: Kein Bild in der Antwort');
+  if(!url) throw new Error('Kein Bild in der Antwort');
   return url;
 }
 
