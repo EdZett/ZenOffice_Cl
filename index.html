@@ -112,7 +112,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 #editor img{max-width:100%;height:auto;border-radius:8px;margin:8px 0;display:block}
 
 /* DICTATION LEGEND */
-#dicleg{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(94,207,176,.13);border:1px solid var(--mint);color:var(--mint);padding:6px 18px;border-radius:20px;font-size:12px;display:none;align-items:center;gap:7px;white-space:nowrap;backdrop-filter:blur(8px);z-index:10;transition:opacity .4s}
+#dicleg{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:var(--mint);border:1px solid var(--mint);color:#1a2e28;padding:9px 22px;border-radius:20px;font-size:13px;font-weight:600;display:none;align-items:center;gap:9px;white-space:nowrap;backdrop-filter:blur(8px);z-index:10;transition:opacity .4s;box-shadow:0 4px 20px rgba(94,207,176,.3)}
 #dicleg.vis{display:flex}
 #dicleg.fade{opacity:0}
 .dcdot{width:7px;height:7px;border-radius:50%;background:var(--mint);animation:pa .7s infinite}
@@ -283,6 +283,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
         </select>
         <div class="tsep"></div>
         <button class="tbb" onclick="doUndo()" title="Rückgängig (3 Schritte)"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
+        <button class="tbb" onclick="copyText()" title="Markierten Text kopieren (oder alles)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Kopieren</button>
+        <button class="tbb" onclick="deleteText()" title="Markierten Text löschen (oder alles)" style="color:var(--rose)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Löschen</button>
         <div class="tsep"></div>
 
         <div class="dd">
@@ -336,7 +338,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
       </div>
 
       <div class="edwrap">
-        <div id="editor" contenteditable="true" spellcheck="true" oninput="onEdit()"></div>
+        <div id="editor" contenteditable="true" spellcheck="true" oninput="onEdit()" onclick="if(dictating)stopDic()"></div>
         <div id="dicleg"><div class="dcdot"></div><span>Diktat</span><span id="dicint"></span></div>
         <div id="undoinfo"></div>
       </div>
@@ -572,6 +574,7 @@ function fmt(c){document.execCommand(c)}
 function setFS(v){document.getElementById('editor').style.fontSize=v}
 let editT=null;
 function onEdit(){updStat();clearTimeout(editT);editT=setTimeout(pushUndo,1500)}
+
 function updStat(){
   const t=document.getElementById('editor').innerText||'';
   const w=t.trim()?t.trim().split(/\s+/).length:0;
@@ -826,6 +829,34 @@ function exp(fmt){
   else if(fmt==='md') dl(new Blob([ed.innerText],{type:'text/markdown'}),title+'.md');
   else if(fmt==='pdf'){document.getElementById('pdfbody').innerHTML=ed.innerHTML;document.getElementById('pdf-ovl').style.display='flex'}
   closeAllDD();
+}
+function copyText(){
+  const sel=window.getSelection();
+  const selTxt=sel?.toString();
+  const ed=document.getElementById('editor');
+  const txt=selTxt||ed.innerText;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn=document.querySelector('[onclick="copyText()"]');
+    if(btn){const o=btn.innerHTML;btn.innerHTML='✓ Kopiert';btn.style.color='var(--mint)';setTimeout(()=>{btn.innerHTML=o;btn.style.color=''},1500);}
+  }).catch(()=>{});
+}
+function deleteText(){
+  const ed=document.getElementById('editor');
+  const sel=window.getSelection();
+  const selTxt=sel?.toString();
+  if(selTxt&&selTxt.length>0){
+    // Nur markierten Text löschen
+    pushUndo();
+    document.execCommand('delete');
+    updStat();
+  } else {
+    // Alles löschen – mit Bestätigung
+    if(confirm('Gesamten Text löschen?')){
+      pushUndo();
+      ed.innerHTML='';
+      updStat();
+    }
+  }
 }
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click()}
 function doPrint(){
