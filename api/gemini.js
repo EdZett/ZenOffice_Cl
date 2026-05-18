@@ -1,3 +1,4 @@
+// Gemini Text Proxy – nach gemini.ts getModelName()
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -10,13 +11,16 @@ export default async function handler(req, res) {
   const key = process.env.GOOGLE_KEY;
   if (!key) { res.status(500).json({ error: 'GOOGLE_KEY nicht konfiguriert' }); return; }
 
-  // Aktuelle Gemini Modellnamen (Mai 2026)
+  // Modellnamen exakt wie in getModelName() aus gemini.ts
   const modelMap = {
-    'gemini-1.5-pro': 'gemini-2.0-flash',
-    'gemini-1.5-flash': 'gemini-2.0-flash',
-    'gemini-pro': 'gemini-2.0-flash',
+    'pro':     'gemini-3.1-pro-preview',
+    'flash':   'gemini-3-flash-preview',
+    'flash25': 'gemini-3.1-flash-lite-preview',
+    // Fallback-Aliase
+    'gemini-1.5-pro':   'gemini-3-flash-preview',
+    'gemini-1.5-flash': 'gemini-3.1-flash-lite-preview',
   };
-  const selectedModel = modelMap[model] || model || 'gemini-2.0-flash';
+  const selectedModel = modelMap[model] || model || 'gemini-3-flash-preview';
 
   const body = {
     contents: [{ role: 'user', parts: [{ text: prompt }] }]
