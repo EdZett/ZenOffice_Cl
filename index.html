@@ -112,11 +112,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 #editor img{max-width:100%;height:auto;border-radius:8px;margin:8px 0;display:block}
 
 /* DICTATION LEGEND */
-#dicleg{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:var(--mint);border:1px solid var(--mint);color:#1a2e28;padding:9px 22px;border-radius:20px;font-size:13px;font-weight:600;display:none;align-items:center;gap:9px;white-space:nowrap;backdrop-filter:blur(8px);z-index:10;transition:opacity .4s;box-shadow:0 4px 20px rgba(94,207,176,.3)}
+#dicleg{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--mint);border:none;color:#fff;padding:18px 40px;border-radius:28px;font-size:22px;font-weight:700;display:none;align-items:center;gap:14px;white-space:nowrap;backdrop-filter:blur(12px);z-index:500;transition:opacity .4s;box-shadow:0 8px 40px rgba(94,207,176,.5);min-width:320px;justify-content:center}
 #dicleg.vis{display:flex}
 #dicleg.fade{opacity:0}
-.dcdot{width:7px;height:7px;border-radius:50%;background:var(--mint);animation:pa .7s infinite}
-#dicint{color:rgba(94,207,176,.75);font-style:italic;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dcdot{width:14px;height:14px;border-radius:50%;background:#fff;animation:pa .7s infinite}
+#dicint{color:rgba(255,255,255,.9);font-style:italic;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:20px}
 #undoinfo{position:absolute;bottom:18px;right:18px;font-size:10px;color:var(--text3);pointer-events:none}
 
 /* SHEET */
@@ -424,7 +424,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 <!-- PDF -->
 <div class="ovl" id="pdf-ovl" style="display:none">
   <div class="modal">
-    <div class="mhd"><h3>PDF Vorschau</h3><button class="ib" onclick="closeM('pdf-ovl')"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="mhd" style="justify-content:center"><h3 style="text-align:center">PDF Vorschau</h3><button class="ib" onclick="closeM('pdf-ovl')"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="mbody"><div class="pdprev" id="pdfbody"></div></div>
     <div class="mfoot">
       <button class="bgh" onclick="closeM('pdf-ovl')">Schließen</button>
@@ -859,18 +859,34 @@ function deleteText(){
   }
 }
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click()}
-function doPrint(){
+async function doPrint(){
   const title=document.getElementById('dtitle').value||'Dokument';
+  const ed=document.getElementById('editor');
+  // Klone den Editor-Inhalt und bette alle Bilder als base64 ein
+  const clone=ed.cloneNode(true);
+  const imgs=clone.querySelectorAll('img');
+  for(const img of imgs){
+    if(img.src.startsWith('data:')) continue; // schon base64
+    try{
+      const r=await fetch(img.src);
+      const blob=await r.blob();
+      const b64=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(blob);});
+      img.src=b64;
+    }catch(e){console.warn('Bild konnte nicht eingebettet werden:',e)}
+  }
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><style>
     @page{size:A4;margin:25mm 20mm}
     body{font-family:Georgia,serif;font-size:12pt;line-height:1.8;color:#111;max-width:170mm;margin:0 auto}
-    img{max-width:100%;border-radius:4px;page-break-inside:avoid}
-    h1,h2,h3{page-break-after:avoid}
+    h1{text-align:center;font-size:18pt;margin-bottom:2em;border-bottom:1px solid #ccc;padding-bottom:0.5em}
+    img{max-width:100%;border-radius:4px;page-break-inside:avoid;display:block;margin:1em auto}
+    h2,h3{page-break-after:avoid}
   </style></head><body>`);
-  w.document.write(document.getElementById('editor').innerHTML);
+  w.document.write(`<h1>${title}</h1>`);
+  w.document.write(clone.innerHTML);
   w.document.write('</body></html>');
-  w.document.close(); w.print();
+  w.document.close(); 
+  setTimeout(()=>w.print(),500);
 }
 
 // ═══════════════════════════════════════
@@ -878,17 +894,23 @@ function doPrint(){
 // ═══════════════════════════════════════
 function saveProj(){
   const title=document.getElementById('dtitle').value.trim()||'Unbenannt';
-  const html=document.getElementById('editor').innerHTML;
-  if(!html.replace(/<[^>]*>/g,'').trim()){alert('Kein Text zum Speichern.');return}
+  const edHtml=document.getElementById('editor').innerHTML;
+  if(!edHtml.replace(/<[^>]*>/g,'').trim()){alert('Kein Text zum Speichern.');return}
   const projs=JSON.parse(localStorage.getItem('zo_projs')||'[]');
   const idx=projs.findIndex(p=>p.title===title&&p.type==='text');
-  const proj={title,html,date:new Date().toISOString(),type:'text'};
+  const proj={title,html:edHtml,date:new Date().toISOString(),type:'text'};
   if(idx>=0) projs[idx]=proj; else projs.unshift(proj);
   if(projs.length>30) projs.length=30;
   localStorage.setItem('zo_projs',JSON.stringify(projs));
   renderProjs();
+  // Zeige kurz an wo gespeichert
   const btn=document.querySelector('[onclick="saveProj()"]');
-  if(btn){btn.style.color='var(--mint)';setTimeout(()=>btn.style.color='',1200)}
+  if(btn){
+    const orig=btn.innerHTML;
+    btn.innerHTML='✓ In Projekten gespeichert';
+    btn.style.color='var(--mint)';
+    setTimeout(()=>{btn.innerHTML=orig;btn.style.color=''},2500);
+  }
 }
 function saveVProj(title,url){
   const projs=JSON.parse(localStorage.getItem('zo_projs')||'[]');
@@ -905,7 +927,8 @@ function renderProjs(){
     <button class="pi" onclick="loadProj(${i})">
       <svg viewBox="0 0 24 24">${p.type==='vision'?'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>':'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'}</svg>
       <span class="pn">${p.title}</span>
-      <button class="pdel" onclick="delProj(event,${i})">✕</button>
+      <button class="pdel" title="Herunterladen" onclick="downloadProj(event,${i})" style="color:var(--sky)">↓</button>
+      <button class="pdel" title="Löschen" onclick="delProj(event,${i})">✕</button>
     </button>`).join('');
 }
 function loadProj(i){
@@ -932,6 +955,21 @@ function delProj(e,i){
   projs.splice(i,1);
   localStorage.setItem('zo_projs',JSON.stringify(projs));
   renderProjs();
+}
+function downloadProj(e,i){
+  e.stopPropagation();
+  const projs=JSON.parse(localStorage.getItem('zo_projs')||'[]');
+  const p=projs[i]; if(!p) return;
+  if(p.type==='vision'&&p.url){
+    // Bild herunterladen
+    const a=document.createElement('a');
+    a.href=p.url; a.download=(p.title||'bild')+'.png'; a.click();
+  } else if(p.html){
+    // Text als HTML-Datei herunterladen
+    const blob=new Blob([`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${p.title}</title></head><body>${p.html}</body></html>`],{type:'text/html'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=(p.title||'text')+'.html'; a.click();
+  }
 }
 
 // ═══════════════════════════════════════
