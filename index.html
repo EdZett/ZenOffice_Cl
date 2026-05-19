@@ -112,11 +112,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 #editor img{max-width:100%;height:auto;border-radius:8px;margin:8px 0;display:block}
 
 /* DICTATION LEGEND */
-#dicleg{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--mint);border:none;color:#fff;padding:18px 40px;border-radius:28px;font-size:22px;font-weight:700;display:none;align-items:center;gap:14px;white-space:nowrap;backdrop-filter:blur(12px);z-index:500;transition:opacity .4s;box-shadow:0 8px 40px rgba(94,207,176,.5);min-width:320px;justify-content:center}
+#dicleg{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#4a6b5e;border:none;color:#fff;padding:20px 48px;border-radius:32px;font-size:20px;font-style:italic;font-weight:500;display:none;align-items:center;gap:16px;backdrop-filter:blur(16px);z-index:500;transition:opacity .5s;box-shadow:0 8px 32px rgba(0,0,0,.35);min-width:380px;max-width:80vw;justify-content:center;letter-spacing:.01em}
 #dicleg.vis{display:flex}
 #dicleg.fade{opacity:0}
-.dcdot{width:14px;height:14px;border-radius:50%;background:#fff;animation:pa .7s infinite}
-#dicint{color:rgba(255,255,255,.9);font-style:italic;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:20px}
+.dcdot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.7);animation:pa .9s infinite;flex-shrink:0}
+#dicint{color:rgba(255,255,255,.85);font-style:italic;max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:19px}
 #undoinfo{position:absolute;bottom:18px;right:18px;font-size:10px;color:var(--text3);pointer-events:none}
 
 /* SHEET */
@@ -455,7 +455,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 
 <input type="file" id="up-img" accept="image/*" style="display:none" onchange="uploadImg(event)">
 <input type="file" id="up-txt" accept=".txt,.md,.markdown" style="display:none" onchange="uploadTxt(event)">
-<input type="file" id="ref-file" accept="image/*" style="display:none" onchange="handleRef(event)">
+<input type="file" id="ref-file" accept="image/*" multiple style="display:none" onchange="handleRef(event)">
 
 <script>
 // ═══════════════════════════════════════
@@ -472,6 +472,7 @@ const IMG_SIZES={s:{fal:{width:512,height:512},oai:'512x512'},m:{fal:{width:768,
 // STATE
 // ═══════════════════════════════════════
 let energy='nano', imgProv='fal', imgSz='s';
+let refImages=[]; // Referenzbilder für Vision
 let speaking=false, ttsAudio=null;
 let dictating=false, recognition=null, dicTimer=null;
 let curVCard=null;
@@ -750,36 +751,80 @@ async function toggleSpeak(){
 function toggleDic(){
   if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('Bitte Chrome verwenden.');return}
   if(dictating){stopDic();return}
+  startDicEngine();
+}
+
+function startDicEngine(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   recognition=new SR();
   recognition.lang='de-DE'; recognition.continuous=true; recognition.interimResults=true;
   const ed=document.getElementById('editor');
   const leg=document.getElementById('dicleg');
   const intEl=document.getElementById('dicint');
+
   recognition.onresult=e=>{
     let fin='',int='';
     for(let i=e.resultIndex;i<e.results.length;i++){
       if(e.results[i].isFinal) fin+=e.results[i][0].transcript;
       else int+=e.results[i][0].transcript;
     }
-    intEl.textContent=int?'„'+int+'"':'';
+    // Interim-Text anzeigen – bleibt sichtbar bis neuer Text kommt
+    if(int) intEl.textContent='„'+int+'"';
     if(fin){
       ed.focus(); document.execCommand('insertText',false,fin+' ');
-      intEl.textContent='';
-      clearTimeout(dicTimer);
-      dicTimer=setTimeout(()=>{leg.classList.add('fade');setTimeout(()=>leg.classList.remove('vis','fade'),400)},2500);
+      // Nach finalem Text: zeige letzten Satz kurz weiter, dann leeren
+      intEl.textContent='„'+fin.trim()+'"';
+      // Legende NICHT ausblenden – bleibt bis Diktat gestoppt
     }
   };
-  recognition.onstart=()=>{dictating=true;leg.classList.add('vis');leg.classList.remove('fade');document.getElementById('dicbtn').style.color='var(--mint)'};
-  recognition.onend=()=>{if(dictating) recognition.start()};
-  recognition.onerror=e=>{if(e.error==='not-allowed') alert('Mikrofon-Zugriff im Browser erlauben (Einstellungen → Datenschutz → Mikrofon).')};
-  recognition.start();
+
+  recognition.onstart=()=>{
+    dictating=true;
+    leg.classList.add('vis');
+    leg.classList.remove('fade');
+    document.getElementById('dicbtn').style.color='var(--mint)';
+  };
+
+  recognition.onend=()=>{
+    // Neustart wenn noch diktiert wird – auch nach App-Wechsel
+    if(dictating){
+      setTimeout(()=>{
+        if(dictating){
+          try{ recognition.start(); }
+          catch(e){
+            // Bei Fehler neues Objekt erstellen
+            setTimeout(()=>{ if(dictating) startDicEngine(); },300);
+          }
+        }
+      },150);
+    }
+  };
+
+  recognition.onerror=e=>{
+    if(e.error==='not-allowed'){
+      alert('Mikrofon-Zugriff im Browser erlauben (Einstellungen → Datenschutz → Mikrofon).');
+      stopDic();
+    }
+    // Bei anderen Fehlern (network, aborted) einfach weitermachen
+  };
+
+  try{ recognition.start(); }
+  catch(e){ console.warn('Diktat Start Fehler:',e); }
 }
+
 function stopDic(){
-  if(recognition){recognition.onend=null;recognition.stop()}
-  dictating=false; document.getElementById('dicbtn').style.color='';
+  dictating=false;
+  if(recognition){
+    recognition.onend=null;
+    recognition.onerror=null;
+    try{ recognition.stop(); }catch(e){}
+    recognition=null;
+  }
+  document.getElementById('dicbtn').style.color='';
   const leg=document.getElementById('dicleg');
-  leg.classList.add('fade'); setTimeout(()=>leg.classList.remove('vis','fade'),400);
+  document.getElementById('dicint').textContent='';
+  leg.classList.add('fade');
+  setTimeout(()=>leg.classList.remove('vis','fade'),400);
 }
 
 // ═══════════════════════════════════════
@@ -1060,7 +1105,7 @@ async function genFal(prompt){
   // Google Nano Banana + fal.ai Fallback via Vercel Proxy
   const r=await fetch('/api/image',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt,energy,image_size:IMG_SIZES[imgSz].fal,num_inference_steps:FAL_STEPS[energy],model:FAL[energy]})
+    body:JSON.stringify({prompt,energy,image_size:IMG_SIZES[imgSz].fal,num_inference_steps:FAL_STEPS[energy],model:FAL[energy],refImages:refImages.map(r=>r.data)})
   });
   if(!r.ok){
     const e=await r.json().catch(()=>({}));
@@ -1163,13 +1208,41 @@ function insertV(btn,size){
   ed.appendChild(document.createElement('br')); updStat();
 }
 function handleRef(e){
-  const file=e.target.files[0]; if(!file) return;
-  const inp=document.getElementById('vinp');
-  inp.placeholder='✓ Referenzbild geladen – beschreibe die gewünschte Änderung…';
-  inp.style.borderColor='var(--gold)';
-  // Dateiname als Titel-Hint
-  const name=file.name.replace(/\.[^.]+$/,'');
-  if(!inp.value) inp.value=name;
+  const files=Array.from(e.target.files); if(!files.length) return;
+  files.forEach(file=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      refImages.push({data:ev.target.result,name:file.name.replace(/\.[^.]+$/,'')});
+      renderRefImages();
+    };
+    r.readAsDataURL(file);
+  });
+  e.target.value='';
+}
+
+function renderRefImages(){
+  let box=document.getElementById('ref-preview');
+  if(!box){
+    box=document.createElement('div');
+    box.id='ref-preview';
+    box.style.cssText='display:flex;gap:8px;flex-wrap:wrap;padding:8px 12px;background:var(--bg3);border-top:1px solid var(--border)';
+    document.querySelector('.vctrl').prepend(box);
+  }
+  box.innerHTML=refImages.map((img,i)=>`
+    <div style="position:relative;flex-shrink:0">
+      <img src="${img.data}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--gold)">
+      <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:9px;text-align:center;border-radius:0 0 6px 6px;padding:2px">${img.name.substring(0,10)}</div>
+      <button onclick="removeRef(${i})" style="position:absolute;top:-6px;right:-6px;background:var(--rose);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
+    </div>
+  `).join('')+(refImages.length<5?`
+    <button onclick="document.getElementById('ref-file').click()" style="width:72px;height:72px;border:2px dashed var(--border2);border-radius:8px;background:none;color:var(--text3);cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center">+</button>
+  `:'');
+  if(refImages.length===0&&box) box.remove();
+}
+
+function removeRef(i){
+  refImages.splice(i,1);
+  renderRefImages();
 }
 </script>
 </body>
