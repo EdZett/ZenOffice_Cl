@@ -282,7 +282,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
           <option value="25px">Sehr groß</option>
         </select>
         <div class="tsep"></div>
-        <button class="tbb" onclick="doUndo()" title="Rückgängig (3 Schritte)"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
+        <button class="tbb" onclick="doUndo()" title="Rückgängig"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
+        <button class="tbb" onclick="doRedo()" title="Wiederholen" id="redo-btn"><svg viewBox="0 0 24 24"><polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/></svg></button>
         <button class="tbb" onclick="copyText()" title="Markierten Text kopieren (oder alles)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Kopieren</button>
         <button class="tbb" onclick="deleteText()" title="Markierten Text löschen (oder alles)" style="color:var(--rose)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Löschen</button>
         <div class="tsep"></div>
@@ -467,7 +468,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 // ═══════════════════════════════════════
 const LANGS=['Deutsch','Englisch','Französisch','Spanisch','Italienisch','Portugiesisch','Niederländisch','Polnisch','Russisch','Ukrainisch','Tschechisch','Slowakisch','Ungarisch','Rumänisch','Bulgarisch','Kroatisch','Serbisch','Slowenisch','Albanisch','Griechisch','Türkisch','Schwedisch','Norwegisch','Dänisch','Finnisch','Estnisch','Lettisch','Litauisch','Isländisch','Irisch','Walisisch','Katalanisch','Galizisch','Baskisch','Maltesisch','Luxemburgisch','Mazedonisch','Bosnisch','Montenegrinisch','Weißrussisch','Georgisch','Armenisch','Aserbaidschanisch','Kasachisch','Usbekisch','Tadschikisch','Sorbisch','Friesisch','Bretagnisch','Okzitanisch','Frankoprovenzalisch','Ladinisch','Rätoromanisch','Jiddisch','Romani','Nordsamisch','Faröisch','Wallonisch','Asturisch','Aragonesisch','Mirandisch','Ladino'];
 
-const CLAUDE={nano:'claude-haiku-4-5-20251001',flash:'claude-sonnet-4-20250514',pro:'claude-opus-4-20250514'};
+const CLAUDE={nano:'claude-haiku-4-5-20251001',flash:'claude-sonnet-4-5-20251001',pro:'claude-opus-4-5-20251001'};
 const FAL={nano:'fal-ai/flux/schnell',flash:'fal-ai/flux/dev',pro:'fal-ai/flux-pro/v1.1'};
 const FAL_STEPS={nano:4,flash:25,pro:28};
 const IMG_SIZES={s:{fal:{width:512,height:512},oai:'512x512'},m:{fal:{width:768,height:768},oai:'1024x1024'},l:{fal:{width:1024,height:1024},oai:'1792x1024'}};
@@ -519,7 +520,7 @@ function updProvBtns(){
   if(btn) btn.classList.add('on-prov');
 }
 function updProvLbl(){
-  const provLabels={fal:'Flux Pro (Pro) / Flux Dev (Flash) / Flux Schnell (Nano)',imagen4:'Imagen 4 (Pro) / Flux Dev (Flash) / Flux Schnell (Nano)'};
+  const provLabels={fal:'fal.ai · Flux',google:'Google · Gemini Bild',imagen4:'Google Imagen 4'};
   document.getElementById('img-prov-lbl').textContent=provLabels[imgProv]||'fal.ai · Flux';
 }
 
@@ -568,8 +569,17 @@ function doUndo(){
     document.getElementById('editor').innerHTML=s.h;
     document.getElementById('dtitle').value=s.t;
     updStat();
-    document.getElementById('undoinfo').textContent=undoPtr>0?`↩ ${undoPtr} Schritt${undoPtr>1?'e':''} verfügbar`:'';
-  } else alert('Keine weiteren Schritte verfügbar (max. 3).');
+    document.getElementById('undoinfo').textContent=undoPtr>0?'↩ '+undoPtr+' Schritt'+(undoPtr>1?'e':'')+' verfügbar':'';
+  }
+}
+function doRedo(){
+  if(undoPtr<undoStack.length-1){
+    undoPtr++;
+    const s=undoStack[undoPtr];
+    document.getElementById('editor').innerHTML=s.h;
+    document.getElementById('dtitle').value=s.t;
+    updStat();
+  }
 }
 
 // ═══════════════════════════════════════
@@ -1062,7 +1072,7 @@ function setImgSrc(src){
   // Flux oder Google als Bildquelle
   document.getElementById('sw-flux').classList.toggle('on', src==='fal');
   document.getElementById('sw-google').classList.toggle('on', src==='google');
-  imgProv = src==='google' ? 'imagen4' : 'fal';
+  imgProv = src==='google' ? 'google' : 'fal';
   const lbl = src==='google' ? 'Google · Gemini Bild' : 'fal.ai · Flux';
   document.getElementById('img-prov-lbl').textContent=lbl;
   localStorage.setItem('zo_prov', imgProv);
@@ -1096,8 +1106,8 @@ async function genImg(){
   showAI('Bild wird generiert…');
   try{
     let url=null;
-    // Nano + Flash immer Flux; Pro je nach Umschalter
-    if(energy==='pro' && imgProv==='imagen4') url=await genImagen4(prompt);
+    // Google oder Flux je nach Umschalter
+    if(imgProv==='google') url=await genGoogle(prompt);
     else url=await genFal(prompt);
     const imgEl=document.createElement('img');
     imgEl.src=url;
@@ -1129,6 +1139,22 @@ async function genFal(prompt){
   const d=await r.json();
   const url=d.images?.[0]?.url||d.image?.url;
   if(!url) throw new Error('Kein Bild in der Antwort');
+  return url;
+}
+
+// ── Google Gemini Bildgenerierung via image.js ──
+async function genGoogle(prompt){
+  const r=await fetch('/api/image',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt,energy,refImages:refImages.map(r=>r.data)})
+  });
+  if(!r.ok){
+    const e=await r.json().catch(()=>({}));
+    throw new Error(e?.error||'Google Bild Fehler '+r.status);
+  }
+  const d=await r.json();
+  const url=d.images?.[0]?.url;
+  if(!url) throw new Error('Google: Kein Bild in der Antwort');
   return url;
 }
 
@@ -1190,7 +1216,7 @@ async function applyVEdit(){
   showAI('Bild wird bearbeitet…');
   const newP=orig+'. Modification: '+ep;
   try{
-    let url=(energy==='pro'&&imgProv==='imagen4')?await genImagen4(newP):await genFal(newP);
+    let url=imgProv==='google'?await genGoogle(newP):await genFal(newP);
     const img=document.createElement('img'); img.src=url;
     img.style.cssText='width:100%;height:100%;object-fit:cover;display:block';
     wrap.innerHTML=''; wrap.appendChild(img); curVCard.dataset.url=url;
