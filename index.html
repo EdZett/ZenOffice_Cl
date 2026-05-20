@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0043)file:///G:/Alberts%20Downloads/index_2.html -->
+<!-- saved from url=(0043)file:///G:/Alberts%20Downloads/index_3.html -->
 <html lang="de"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -916,31 +916,30 @@ function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(
 async function doPrint(){
   const title=document.getElementById('dtitle').value||'Dokument';
   const ed=document.getElementById('editor');
-  // Klone den Editor-Inhalt und bette alle Bilder als base64 ein
   const clone=ed.cloneNode(true);
+  // Bilder als base64 einbetten damit sie im Druck erscheinen
   const imgs=clone.querySelectorAll('img');
   for(const img of imgs){
-    if(img.src.startsWith('data:')) continue; // schon base64
+    if(img.src.startsWith('data:')) continue;
     try{
       const r=await fetch(img.src);
       const blob=await r.blob();
       const b64=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(blob);});
       img.src=b64;
-    }catch(e){console.warn('Bild konnte nicht eingebettet werden:',e)}
+    }catch(e){}
   }
-  const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><style>
-    @page{size:A4;margin:25mm 20mm}
+  const w=window.open('','ZenOfficePrint');
+  const doc=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>
+    @page{size:A4;margin:20mm 20mm 20mm 20mm}
     body{font-family:Georgia,serif;font-size:12pt;line-height:1.8;color:#111;max-width:170mm;margin:0 auto}
-    h1{text-align:center;font-size:18pt;margin-bottom:2em;border-bottom:1px solid #ccc;padding-bottom:0.5em}
-    img{max-width:100%;border-radius:4px;page-break-inside:avoid;display:block;margin:1em auto}
-    h2,h3{page-break-after:avoid}
-  </style></head><body>`);
-  w.document.write(`<h1>${title}</h1>`);
-  w.document.write(clone.innerHTML);
-  w.document.write('</body></html>');
-  w.document.close(); 
-  setTimeout(()=>w.print(),500);
+    h1{text-align:center;font-size:16pt;margin:0 0 1.5em 0;padding-bottom:0.4em;border-bottom:1px solid #ddd;font-weight:normal;letter-spacing:.05em}
+    img{max-width:100%;page-break-inside:avoid;display:block;margin:1em auto;border-radius:4px}
+    p{margin:0 0 0.8em 0}
+  </style></head><body><h1>${title}</h1>${clone.innerHTML}</body></html>`;
+  w.document.open();
+  w.document.write(doc);
+  w.document.close();
+  setTimeout(()=>{w.focus();w.print();},600);
 }
 
 // ═══════════════════════════════════════
@@ -1116,7 +1115,7 @@ async function genImg(){
     vimgDiv.appendChild(imgEl);
     card.dataset.prompt=prompt; card.dataset.url=url;
     addVBtns(card);
-    saveVProj(document.getElementById('dtitle').value.trim()||prompt.substring(0,30),url);
+    // Nicht automatisch speichern – Nutzer entscheidet selbst
   }catch(e){
     card.querySelector('.vimg').innerHTML=`<div class="vph"><span style="color:var(--rose);font-size:11px;padding:12px">${e.message}</span></div>`;
   }
@@ -1198,11 +1197,32 @@ async function genImagen4(prompt){
 function addVBtns(card){
   card.querySelector('.vbtns').innerHTML=`
     <button class="vbtn" onclick="editVC(this)"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg>Bearbeiten</button>
-    <button class="vbtn" onclick="analyzeV(this)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Prompt-Analyse</button>
-    <button class="vbtn" onclick="insertV(this,'s')" title="Bild klein in Textbereich einfügen">→Text S</button>
-    <button class="vbtn" onclick="insertV(this,'m')" title="Bild mittelgroß in Textbereich einfügen">→Text M</button>
-    <button class="vbtn" onclick="insertV(this,'l')" title="Bild groß in Textbereich einfügen">→Text L</button>
+    <button class="vbtn" onclick="analyzeV(this)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Analyse</button>
+    <button class="vbtn" onclick="saveVCard(this)" title="In Projekten speichern"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Speichern</button>
+    <button class="vbtn" onclick="downloadVCard(this)" title="Bild herunterladen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download</button>
+    <button class="vbtn" onclick="insertV(this,'s')" title="Klein in Text">→S</button>
+    <button class="vbtn" onclick="insertV(this,'m')" title="Mittel in Text">→M</button>
+    <button class="vbtn" onclick="insertV(this,'l')" title="Groß in Text">→L</button>
   `;
+}
+function saveVCard(btn){
+  const card=btn.closest('.vcard');
+  const url=card.dataset.url||'';
+  const prompt=card.dataset.prompt||'Bild';
+  const title=document.getElementById('dtitle').value.trim()||prompt.substring(0,30);
+  saveVProj(title,url);
+  btn.textContent='✓ Gespeichert';
+  btn.style.color='var(--mint)';
+  setTimeout(()=>{btn.textContent='Speichern';btn.style.color=''},1500);
+}
+function downloadVCard(btn){
+  const card=btn.closest('.vcard');
+  const url=card.dataset.url||'';
+  if(!url) return;
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='bild-'+(card.dataset.prompt||'zen').substring(0,20).replace(/[^a-z0-9]/gi,'_')+'.png';
+  a.click();
 }
 function editVC(btn){curVCard=btn.closest('.vcard');document.getElementById('vedit-ovl').style.display='flex'}
 async function applyVEdit(){
@@ -1238,13 +1258,17 @@ function insertV(btn,size){
   const card=btn.closest('.vcard'); const url=card.dataset.url||'';
   const ed=document.getElementById('editor');
   const sizes={s:'180px',m:'320px',l:'500px'};
-  swP('text',document.getElementById('n-text'));
   if(url){
-    const img=document.createElement('img'); img.src=url;
-    img.style.cssText=`width:${sizes[size]};border-radius:8px;margin:6px 0;display:block`;
+    const img=document.createElement('img');
+    img.src=url;
+    img.dataset.visionUrl=url; // Markierung damit wir Duplikate erkennen
+    img.style.cssText='width:'+sizes[size]+';border-radius:8px;margin:6px 0;display:block';
     ed.appendChild(img);
+    ed.appendChild(document.createElement('br'));
+    updStat();
   }
-  ed.appendChild(document.createElement('br')); updStat();
+  // Erst NACH dem Einfügen zum Text wechseln
+  swP('text',document.getElementById('n-text'));
 }
 function handleRef(e){
   const files=Array.from(e.target.files); if(!files.length) return;
