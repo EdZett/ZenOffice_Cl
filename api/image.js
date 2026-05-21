@@ -10,18 +10,26 @@ export default async function handler(req, res) {
   const googleKey = process.env.GOOGLE_KEY;
   const falKey = process.env.FAL_KEY;
 
-  // Google Gemini Bildmodelle – exakt wie in getVisionModelName() aus gemini.ts
+  // Google Gemini Bildmodelle – nach Stufe
   const visionModels = {
-    pro:   'gemini-3.1-flash-image-preview',
-    flash: 'gemini-2.5-flash-image',
-    nano:  'gemini-2.5-flash-image',
+    nano:  'gemini-2.5-flash-image',           // Platz 3 – günstig, schnell
+    flash: 'gemini-3.1-flash-image-preview',   // Platz 1 – schnell, exzellent
+    pro:   'gemini-3-pro-image-preview',        // Platz 2 – Profi, Thinking
   };
-  const visionModel = visionModels[energy] || 'gemini-2.5-flash-image';
+
+  // fal.ai Flux Modelle – nach Stufe
+  const falModels = {
+    nano:  'fal-ai/flux/schnell',
+    flash: 'fal-ai/flux-pro/v1.1',
+    pro:   'fal-ai/flux-2-pro',
+  };
+
+  const visionModel = visionModels[energy] || visionModels.flash;
+  const useFalModel = falModel || falModels[energy] || falModels.nano;
 
   // Versuch: Google Gemini Bildgenerierung
   if (googleKey) {
     try {
-      // Parts zusammenbauen – Text + optionale Referenzbilder
       const parts = [{ text: prompt }];
       if (refImages && Array.isArray(refImages)) {
         refImages.slice(0, 4).forEach(img => {
@@ -66,14 +74,7 @@ export default async function handler(req, res) {
 
   // Fallback: fal.ai Flux
   if (falKey) {
-    const falModels = {
-      pro:   'fal-ai/flux-pro/v1.1',
-      flash: 'fal-ai/flux/dev',
-      nano:  'fal-ai/flux/schnell',
-    };
-    const useFalModel = falModel || falModels[energy] || 'fal-ai/flux/schnell';
-    const steps = energy === 'pro' ? 28 : energy === 'flash' ? 25 : 4;
-
+    const steps = energy === 'pro' ? 28 : energy === 'flash' ? 28 : 4;
     try {
       const r = await fetch(`https://fal.run/${useFalModel}`, {
         method: 'POST',
