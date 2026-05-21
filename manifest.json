@@ -1,0 +1,26 @@
+{
+  "name": "ZenOffice Claude Edition",
+  "short_name": "ZenOffice",
+  "description": "KI-gestützter Text-, Tabellen- und Bildeditor",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111010",
+  "theme_color": "#111010",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "de"
+}
