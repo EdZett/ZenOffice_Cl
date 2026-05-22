@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0041)file:///G:/Alberts%20Downloads/index.html -->
+<!-- saved from url=(0043)file:///G:/Alberts%20Downloads/index_1.html -->
 <html lang="de"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -114,7 +114,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 
 /* EDITOR */
 .edwrap{flex:1;overflow-y:auto;display:flex;flex-direction:column;background:var(--bg);position:relative}
-#editor{flex:1;padding:44px 60px;font-size:16px;line-height:1.95;outline:none;color:var(--text);font-family:var(--fn);min-height:100%}
+#editor{flex:1;padding:32px 48px;font-size:14px;line-height:1.85;outline:none;color:var(--text);font-family:var(--fn);min-height:100%}
 #editor:empty::before{content:'Beginne zu schreiben…';color:var(--text3);font-style:italic;pointer-events:none;font-family:var(--fs);font-size:17px}
 #editor img{max-width:100%;height:auto;border-radius:8px;margin:8px 0;display:block}
 
@@ -282,9 +282,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
         <button class="tbb" onclick="fmt(&#39;underline&#39;)"><svg viewBox="0 0 24 24"><path d="M6 3v7a6 6 0 0 0 12 0V3"></path><line x1="4" y1="21" x2="20" y2="21"></line></svg></button>
         <div class="tsep"></div>
         <select class="tsel" onchange="setFS(this.value)">
+          <option value="13px">Klein</option>
           <option value="15px">Normal</option>
           <option value="19px">Groß</option>
-          <option value="25px">Sehr groß</option>
+        </select>
+        <select class="tsel" onchange="setFont(this.value)" title="Schriftart">
+          <option value="system">Standard</option>
+          <option value="serif">Georgia</option>
+          <option value="handwriting">Handschrift</option>
         </select>
         <div class="tsep"></div>
         <button class="tbb" onclick="doUndo()" title="Rückgängig"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg></button>
@@ -319,27 +324,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
         </div>
 
         <button class="tbb" onclick="openLang()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>Sprache</button>
-        <button class="tbb" id="dicbtn" onclick="toggleDic()"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>Diktat</button>
+        <button class="tbb" id="dicbtn" onclick="toggleDic()" style="display: flex;"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>Diktat</button>
+        <button class="tbb" id="diclang" onclick="toggleDicLang()" title="Diktatsprache wechseln" style="display: flex; font-size: 11px; font-weight: 700; min-width: 36px;">DE</button>
         <button class="tbb" id="spkbtn" onclick="toggleSpeak()"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>Vorlesen</button>
         <a class="tbb" id="audio-dl" style="display:none;text-decoration:none" title="Audio herunterladen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Audio ↓</a>
         <div class="tsep"></div>
 
         <div class="dd">
-          <button class="tbb" onclick="tDD(&#39;dd-up&#39;)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Upload</button>
-          <div class="ddm" id="dd-up" style="display:none">
-            <button onclick="document.getElementById(&#39;up-img&#39;).click();cDD(&#39;dd-up&#39;)"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>Bild einfügen</button>
-            <button onclick="document.getElementById(&#39;up-txt&#39;).click();cDD(&#39;dd-up&#39;)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>Text / Markdown einfügen</button>
-          </div>
-        </div>
-
-        <button class="tbb" onclick="saveProj()"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>Speichern</button>
-
-        <div class="dd">
-          <button class="tbb" onclick="tDD(&#39;dd-share&#39;)"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>Teilen</button>
-          <div class="ddm" id="dd-share" style="display:none">
-            <button onclick="exp(&#39;txt&#39;);cDD(&#39;dd-share&#39;)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>Als Text (.txt)</button>
-            <button onclick="exp(&#39;md&#39;);cDD(&#39;dd-share&#39;)"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M7 15V9l2 2 2-2v6"></path><path d="M15 9v6"></path></svg>Als Markdown (.md)</button>
-            <button onclick="exp(&#39;pdf&#39;);cDD(&#39;dd-share&#39;)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>PDF Vorschau / Druck</button>
+          <button class="tbb" onclick="tDD(&#39;dd-io&#39;)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Im/Export</button>
+          <div class="ddm" id="dd-io" style="display:none">
+            <div class="ddl">Importieren</div>
+            <button onclick="document.getElementById(&#39;up-img&#39;).click();cDD(&#39;dd-io&#39;)"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>Bild einfügen</button>
+            <button onclick="document.getElementById(&#39;up-txt&#39;).click();cDD(&#39;dd-io&#39;)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>Text / Markdown</button>
+            <div class="dds"></div>
+            <div class="ddl">Exportieren</div>
+            <button onclick="exp(&#39;txt&#39;);cDD(&#39;dd-io&#39;)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>Als Text (.txt)</button>
+            <button onclick="exp(&#39;md&#39;);cDD(&#39;dd-io&#39;)"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M7 15V9l2 2 2-2v6"></path><path d="M15 9v6"></path></svg>Als Markdown (.md)</button>
+            <button onclick="exp(&#39;pdf&#39;);cDD(&#39;dd-io&#39;)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>PDF / Drucken</button>
+            <div class="dds"></div>
+            <button onclick="saveProj();cDD(&#39;dd-io&#39;)"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline></svg>In Projekten speichern</button>
           </div>
         </div>
       </div>
@@ -494,7 +497,11 @@ let undoStack=[], undoPtr=-1;
 // ═══════════════════════════════════════
 window.addEventListener('load',()=>{
   loadSet(); buildLangs(); updStat(); pushUndo(); renderProjs();
-  if(/Mobi|Android/i.test(navigator.userAgent)) document.getElementById('dicbtn').style.display='none';
+  // Diktat nur auf Desktop anzeigen
+  if(!/Mobi|Android/i.test(navigator.userAgent)){
+    document.getElementById('dicbtn').style.display='flex';
+    document.getElementById('diclang').style.display='flex';
+  }
   // Schlüssel sind in Vercel - kein lokaler Check nötig
 });
 
@@ -598,6 +605,15 @@ function doRedo(){
 // ═══════════════════════════════════════
 function fmt(c){document.execCommand(c)}
 function setFS(v){document.getElementById('editor').style.fontSize=v}
+function setFont(v){
+  const ed=document.getElementById('editor');
+  const fonts={
+    'system':'"DM Sans",system-ui,sans-serif',
+    'serif':'Georgia,"Cormorant Garamond",serif',
+    'handwriting':'"Comic Sans MS","Comic Neue",cursive,sans-serif'
+  };
+  ed.style.fontFamily=fonts[v]||fonts['system'];
+}
 let editT=null;
 function onEdit(){updStat();clearTimeout(editT);editT=setTimeout(pushUndo,1500)}
 
@@ -744,7 +760,7 @@ async function toggleSpeak(){
       dlBtn.style.display='flex';
       ttsAudio.onended=()=>{
         speaking=false;btn.innerHTML=PLAY_SVG;stat.innerHTML='';ttsAudio=null;
-        setTimeout(()=>{if(dlBtn)dlBtn.style.display='none';},5000);
+        // Download-Button bleibt bis Nutzer ihn selbst schliesst
       };
     }
     
@@ -791,10 +807,18 @@ function toggleDic(){
   startDicEngine();
 }
 
+let dicLang='de-DE';
+function toggleDicLang(){
+  dicLang = dicLang==='de-DE' ? 'en-US' : 'de-DE';
+  const btn=document.getElementById('diclang');
+  btn.textContent=dicLang==='de-DE'?'DE':'EN';
+  btn.style.color=dicLang==='de-DE'?'var(--text2)':'var(--sky)';
+  if(dictating){ stopDic(); setTimeout(startDicEngine,200); }
+}
 function startDicEngine(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   recognition=new SR();
-  recognition.lang='de-DE';
+  recognition.lang=dicLang;
   recognition.continuous=true;
   recognition.interimResults=true;
   const ed=document.getElementById('editor');
@@ -908,6 +932,44 @@ function exp(fmt){
   else if(fmt==='md') dl(new Blob([ed.innerText],{type:'text/markdown'}),title+'.md');
   else if(fmt==='pdf'){document.getElementById('pdfbody').innerHTML=ed.innerHTML;document.getElementById('pdf-ovl').style.display='flex'}
   closeAllDD();
+}
+async function runKiCmd(){
+  const inp=document.getElementById('ki-cmd');
+  const cmd=inp.value.trim(); if(!cmd) return;
+  const ed=document.getElementById('editor');
+  const text=ed.innerText.trim();
+  const result=document.getElementById('ki-result');
+  const closeBtn=document.getElementById('ki-close');
+  result.style.display='block';
+  result.textContent='KI arbeitet...';
+  closeBtn.style.display='flex';
+  showAI('KI verarbeitet...');
+  try{
+    let response='';
+    if(text&&text.length>10){
+      const isTextCmd=/schreib|aender|ersetze|wandle|mach|formatier|gross|klein|du|sie|entfern|fuege|uppercase|lowercase/i.test(cmd);
+      if(isTextCmd){
+        pushUndo();
+        const prompt='Befolge diese Anweisung fuer den folgenden Text. Gib NUR den geaenderten Text zurueck. Anweisung: '+cmd+' Text: '+text;
+        response=await callClaude(prompt,'Du bist ein Texteditor. Fuehre die Anweisung exakt aus. Gib nur den Ergebnis-Text zurueck.');
+        ed.innerText=response;
+        updStat(); pushUndo();
+        result.textContent='Text wurde geaendert.';
+        setTimeout(()=>closeKiResult(),2000);
+        inp.value=''; hideAI(); return;
+      }
+    }
+    response=await callClaude(cmd,'Du bist ein hilfreicher Assistent. Antworte praezise auf Deutsch.');
+    result.textContent=response;
+  }catch(e){
+    result.textContent='Fehler: '+e.message;
+  }
+  inp.value=''; hideAI();
+}
+function closeKiResult(){
+  document.getElementById('ki-result').style.display='none';
+  document.getElementById('ki-close').style.display='none';
+  document.getElementById('ki-cmd').value='';
 }
 function copyText(){
   const sel=window.getSelection();
