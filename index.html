@@ -964,10 +964,8 @@ async function promptToVision(){
   try{
     // Text in Englischen Bildprompt umwandeln
     const prompt=await callClaude(
-      'Wandle folgenden Text in einen professionellen englischen KI-Bildgenerator-Prompt um. Füge Lichtstimmung, Komposition, Stil, Atmosphäre hinzu. Nur der fertige Prompt auf Englisch:
-
-'+text,
-      'Du bist Experte für KI-Bild-Prompts. Nur der Prompt, keine Erklärungen.'
+      'Wandle folgenden Text in einen professionellen englischen KI-Bildgenerator-Prompt um. Licht, Komposition, Stil, Atmosphaere. Nur der Prompt auf Englisch: '+text,
+      'Experte fuer KI-Bild-Prompts. Nur der Prompt.'
     );
     // Vision-Bereich öffnen und Prompt einfügen
     swP('vision',document.getElementById('n-vision'));
