@@ -98,9 +98,21 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 
 /* TOOLBAR */
 .tb{display:flex;align-items:center;gap:3px;padding:7px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--bg2);flex-shrink:0}
-.tbb{background:none;border:1px solid transparent;color:var(--text2);cursor:pointer;padding:5px 8px;border-radius:7px;font-size:12px;transition:all .15s;display:flex;align-items:center;gap:4px;font-family:var(--fn);white-space:nowrap}
-.tbb:hover{background:var(--bg3);color:var(--text);border-color:var(--border)}
-.tbb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.tbb{background:none;border:1.5px solid transparent;color:var(--text2);cursor:pointer;padding:6px 12px;border-radius:20px;font-size:11.5px;font-weight:500;letter-spacing:.02em;transition:all .2s ease;display:flex;align-items:center;gap:5px;font-family:var(--fn);white-space:nowrap}
+.tbb:hover{background:var(--gold-glow);color:var(--gold);border-color:rgba(201,169,110,.25)}
+.tbb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tbb.zen-opt{background:rgba(201,169,110,.12);color:var(--gold);border-color:rgba(201,169,110,.2)}
+.tbb.zen-opt:hover{background:rgba(201,169,110,.22);border-color:rgba(201,169,110,.4)}
+.tbb.zen-fact{background:rgba(196,132,122,.1);color:var(--rose);border-color:rgba(196,132,122,.2)}
+.tbb.zen-fact:hover{background:rgba(196,132,122,.2);border-color:rgba(196,132,122,.4)}
+.tbb.zen-lang{background:rgba(122,158,196,.1);color:var(--sky);border-color:rgba(122,158,196,.2)}
+.tbb.zen-lang:hover{background:rgba(122,158,196,.2);border-color:rgba(122,158,196,.4)}
+.tbb.zen-hear{background:rgba(122,158,122,.1);color:var(--sage);border-color:rgba(122,158,122,.2)}
+.tbb.zen-hear:hover{background:rgba(122,158,122,.2);border-color:rgba(122,158,122,.4)}
+.tbb.zen-dic{background:rgba(201,169,110,.08);color:var(--text2);border-color:rgba(201,169,110,.15)}
+.tbb.zen-dic.active,.tbb.zen-dic[style*="color:var(--mint)"]{background:rgba(122,158,122,.2);color:var(--sage);border-color:rgba(122,158,122,.35)}
+.tbb.zen-del{color:var(--rose);opacity:.75}
+.tbb.zen-del:hover{opacity:1;background:rgba(196,132,122,.1);border-color:rgba(196,132,122,.2)}
 .tsep{width:1px;height:16px;background:var(--border);margin:0 2px;flex-shrink:0}
 .tsel{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 7px;border-radius:7px;font-size:12px;cursor:pointer;font-family:var(--fn)}
 .dd{position:relative}
@@ -297,11 +309,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
         <button class="tbb" onclick="doUndo()" title="Rückgängig"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
         <button class="tbb" onclick="doRedo()" title="Wiederholen" id="redo-btn"><svg viewBox="0 0 24 24"><polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/></svg></button>
         <button class="tbb" onclick="copyText()" title="Markierten Text kopieren (oder alles)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Kopieren</button>
-        <button class="tbb" onclick="deleteText()" title="Markierten Text löschen (oder alles)" style="color:var(--rose)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Löschen</button>
+        <button class="tbb zen-del" onclick="deleteText()" title="Markierten Text löschen (oder alles)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Löschen</button>
         <div class="tsep"></div>
 
         <div class="dd">
-          <button class="tbb" onclick="tDD('dd-opt')"><svg viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>Optimieren</button>
+          <button class="tbb zen-opt" onclick="tDD('dd-opt')"><svg viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>Optimieren</button>
           <div class="ddm" id="dd-opt" style="display:none">
             <button onclick="aiTxt('Verbessere Grammatik, Klang und Stil. Seriös aber modern und angenehm. Nur der Text.');cDD('dd-opt')"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg>Grammatik &amp; Klang</button>
             <button onclick="aiTxt('Fasse diesen Text prägnant zusammen ohne wesentlichen Inhaltsverlust, aber deutlich kürzer. Nur der Text.');cDD('dd-opt')"><svg viewBox="0 0 24 24"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="11" y2="18"/></svg>Zusammenfassen</button>
@@ -326,9 +338,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
         </div>
 
         <button class="tbb" onclick="openLang()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Sprache</button>
-        <button class="tbb" id="dicbtn" onclick="toggleDic()" style="display:none"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Diktat</button>
+        <button class="tbb zen-dic" id="dicbtn" onclick="toggleDic()" style="display:none"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Diktat</button>
         <button class="tbb" id="diclang" onclick="toggleDicLang()" title="Diktatsprache wechseln" style="display:none;font-size:11px;font-weight:700;min-width:36px">DE</button>
-        <button class="tbb" id="spkbtn" onclick="toggleSpeak()"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>Vorlesen</button>
+        <button class="tbb zen-hear" id="spkbtn" onclick="toggleSpeak()"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>Vorlesen</button>
         <a class="tbb" id="audio-dl" style="display:none;text-decoration:none" title="Audio herunterladen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Audio ↓</a>
         <div class="tsep"></div>
 
