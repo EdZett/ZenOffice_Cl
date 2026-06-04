@@ -98,21 +98,86 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 
 /* TOOLBAR */
 .tb{display:flex;align-items:center;gap:3px;padding:7px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--bg2);flex-shrink:0}
-.tbb{background:none;border:1.5px solid transparent;color:var(--text2);cursor:pointer;padding:6px 12px;border-radius:20px;font-size:11.5px;font-weight:500;letter-spacing:.02em;transition:all .2s ease;display:flex;align-items:center;gap:5px;font-family:var(--fn);white-space:nowrap}
-.tbb:hover{background:var(--gold-glow);color:var(--gold);border-color:rgba(201,169,110,.25)}
-.tbb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.tbb.zen-opt{background:rgba(201,169,110,.12);color:var(--gold);border-color:rgba(201,169,110,.2)}
-.tbb.zen-opt:hover{background:rgba(201,169,110,.22);border-color:rgba(201,169,110,.4)}
-.tbb.zen-fact{background:rgba(196,132,122,.1);color:var(--rose);border-color:rgba(196,132,122,.2)}
-.tbb.zen-fact:hover{background:rgba(196,132,122,.2);border-color:rgba(196,132,122,.4)}
-.tbb.zen-lang{background:rgba(122,158,196,.1);color:var(--sky);border-color:rgba(122,158,196,.2)}
-.tbb.zen-lang:hover{background:rgba(122,158,196,.2);border-color:rgba(122,158,196,.4)}
-.tbb.zen-hear{background:rgba(122,158,122,.1);color:var(--sage);border-color:rgba(122,158,122,.2)}
-.tbb.zen-hear:hover{background:rgba(122,158,122,.2);border-color:rgba(122,158,122,.4)}
-.tbb.zen-dic{background:rgba(201,169,110,.08);color:var(--text2);border-color:rgba(201,169,110,.15)}
-.tbb.zen-dic.active,.tbb.zen-dic[style*="color:var(--mint)"]{background:rgba(122,158,122,.2);color:var(--sage);border-color:rgba(122,158,122,.35)}
-.tbb.zen-del{color:var(--rose);opacity:.75}
-.tbb.zen-del:hover{opacity:1;background:rgba(196,132,122,.1);border-color:rgba(196,132,122,.2)}
+.tbb{
+  background:rgba(201,169,110,.07);
+  border:1.5px solid rgba(201,169,110,.18);
+  color:var(--text2);
+  cursor:pointer;
+  padding:7px 14px;
+  border-radius:22px;
+  font-size:12px;
+  font-weight:500;
+  letter-spacing:.02em;
+  transition:all .25s ease;
+  display:flex;align-items:center;gap:5px;
+  font-family:var(--fn);white-space:nowrap;
+}
+.tbb:hover{
+  background:rgba(201,169,110,.18);
+  color:var(--gold);
+  border-color:rgba(201,169,110,.4);
+  transform:translateY(-1px);
+  box-shadow:0 3px 10px rgba(201,169,110,.12);
+}
+.tbb svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* Optimieren – warmgold */
+.tbb.zen-opt{
+  background:rgba(201,169,110,.18);
+  color:var(--gold);
+  border-color:rgba(201,169,110,.35);
+  font-weight:600;
+}
+.tbb.zen-opt:hover{background:rgba(201,169,110,.28);border-color:var(--gold);}
+
+/* Faktencheck – warmes Rose */
+.tbb.zen-fact{
+  background:rgba(196,132,122,.15);
+  color:var(--rose);
+  border-color:rgba(196,132,122,.3);
+}
+.tbb.zen-fact:hover{background:rgba(196,132,122,.25);border-color:var(--rose);}
+
+/* Stil / Sprache – sanftes Blau */
+.tbb.zen-lang{
+  background:rgba(122,158,196,.12);
+  color:var(--sky);
+  border-color:rgba(122,158,196,.28);
+}
+.tbb.zen-lang:hover{background:rgba(122,158,196,.22);border-color:var(--sky);}
+
+/* Vorlesen – salbeigrün */
+.tbb.zen-hear{
+  background:rgba(122,158,122,.15);
+  color:var(--sage);
+  border-color:rgba(122,158,122,.3);
+}
+.tbb.zen-hear:hover{background:rgba(122,158,122,.25);border-color:var(--sage);}
+
+/* Diktat */
+.tbb.zen-dic{
+  background:rgba(201,169,110,.1);
+  color:var(--text2);
+  border-color:rgba(201,169,110,.2);
+}
+.tbb.zen-dic.active,
+.tbb.zen-dic[style*="color:var(--mint)"],
+.tbb.zen-dic[style*="color: var(--mint)"]{
+  background:rgba(94,207,176,.18);
+  color:var(--mint);
+  border-color:rgba(94,207,176,.4);
+  animation:zen-breathe 1.8s ease-in-out infinite;
+}
+@keyframes zen-breathe{0%,100%{box-shadow:0 0 0 0 rgba(94,207,176,.0)}50%{box-shadow:0 0 12px 2px rgba(94,207,176,.2)}}
+
+/* Löschen */
+.tbb.zen-del{
+  background:rgba(196,132,122,.08);
+  color:var(--rose);
+  border-color:rgba(196,132,122,.2);
+  opacity:.85;
+}
+.tbb.zen-del:hover{opacity:1;background:rgba(196,132,122,.18);border-color:rgba(196,132,122,.4);}
 .tsep{width:1px;height:16px;background:var(--border);margin:0 2px;flex-shrink:0}
 .tsel{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 7px;border-radius:7px;font-size:12px;cursor:pointer;font-family:var(--fn)}
 .dd{position:relative}
@@ -291,9 +356,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
     <!-- TEXT -->
     <div class="panel on" id="text-panel">
       <div class="tb">
-        <button class="tbb" onclick="fmt('bold')"><svg viewBox="0 0 24 24"><path d="M6 4h8a4 4 0 0 1 0 8H6z"/><path d="M6 12h9a4 4 0 0 1 0 8H6z"/></svg></button>
-        <button class="tbb" onclick="fmt('italic')"><svg viewBox="0 0 24 24"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>
-        <button class="tbb" onclick="fmt('underline')"><svg viewBox="0 0 24 24"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg></button>
+        <button class="tbb" onclick="fmt('bold')" title="Fett" style="font-weight:800;font-size:14px;padding:6px 11px">B</button>
+        <button class="tbb" onclick="fmt('italic')" title="Kursiv" style="font-style:italic;font-size:14px;font-family:'Cormorant Garamond',Georgia,serif;padding:6px 11px">I</button>
+        <button class="tbb" onclick="fmt('underline')" title="Unterstrichen" style="text-decoration:underline;font-size:14px;padding:6px 11px">U</button>
         <div class="tsep"></div>
         <select class="tsel" onchange="setFS(this.value)">
           <option value="13px">Klein</option>
@@ -306,8 +371,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
           <option value="handwriting">Handschrift</option>
         </select>
         <div class="tsep"></div>
-        <button class="tbb" onclick="doUndo()" title="Rückgängig"><svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>
-        <button class="tbb" onclick="doRedo()" title="Wiederholen" id="redo-btn"><svg viewBox="0 0 24 24"><polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/></svg></button>
+        <button class="tbb" onclick="doUndo()" title="Rückgängig"><svg viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M3 10a9 9 0 1 0 2.6-6.4" stroke-width="2.2"/><polyline points="3 4 3 10 9 10" stroke-width="2.2"/></svg></button>
+        <button class="tbb" onclick="doRedo()" title="Wiederholen" id="redo-btn"><svg viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M21 10a9 9 0 1 0-2.6-6.4" stroke-width="2.2"/><polyline points="21 4 21 10 15 10" stroke-width="2.2"/></svg></button>
         <button class="tbb" onclick="copyText()" title="Markierten Text kopieren (oder alles)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Kopieren</button>
         <button class="tbb zen-del" onclick="deleteText()" title="Markierten Text löschen (oder alles)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Löschen</button>
         <div class="tsep"></div>
