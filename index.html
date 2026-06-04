@@ -53,7 +53,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 .snav{padding:6px 8px}
 .nl{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--text3);padding:10px 8px 5px}
 .ni{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;cursor:pointer;border:none;background:none;width:100%;text-align:left;color:var(--text2);font-family:var(--fn);font-size:13px;transition:all .18s;position:relative}
-.ni:hover{background:var(--bg3);color:var(--text)}
+.ni:hover{background:var(--gold-glow);color:var(--gold);border-color:rgba(201,169,110,.2)}
 .ni.on{background:var(--gold-glow);color:var(--gold)}
 .ni.on::before{content:'';position:absolute;left:0;top:22%;bottom:22%;width:2px;background:var(--gold);border-radius:2px}
 .ni-ic{width:30px;height:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
@@ -99,86 +99,65 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 /* TOOLBAR */
 .tb{display:flex;align-items:center;gap:3px;padding:7px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--bg2);flex-shrink:0}
 .tbb{
-  background:rgba(201,169,110,.07);
-  border:1.5px solid rgba(201,169,110,.18);
-  color:var(--text2);
+  background:var(--tbb-bg, rgba(201,169,110,.09));
+  border:1.5px solid var(--tbb-border, rgba(201,169,110,.2));
+  color:var(--tbb-color, var(--text2));
   cursor:pointer;
-  padding:7px 14px;
+  padding:7px 15px;
   border-radius:22px;
   font-size:12px;
   font-weight:500;
-  letter-spacing:.02em;
-  transition:all .25s ease;
+  letter-spacing:.03em;
+  transition:all .22s ease;
   display:flex;align-items:center;gap:5px;
   font-family:var(--fn);white-space:nowrap;
 }
 .tbb:hover{
-  background:rgba(201,169,110,.18);
+  background:rgba(201,169,110,.2);
   color:var(--gold);
-  border-color:rgba(201,169,110,.4);
+  border-color:rgba(201,169,110,.45);
   transform:translateY(-1px);
-  box-shadow:0 3px 10px rgba(201,169,110,.12);
+  box-shadow:0 4px 12px rgba(201,169,110,.15);
 }
 .tbb svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 
-/* Optimieren – warmgold */
-.tbb.zen-opt{
-  background:rgba(201,169,110,.18);
-  color:var(--gold);
-  border-color:rgba(201,169,110,.35);
-  font-weight:600;
-}
-.tbb.zen-opt:hover{background:rgba(201,169,110,.28);border-color:var(--gold);}
+/* Optimieren */
+.tbb.zen-opt{background:rgba(210,140,110,.2);color:#e8956d;border-color:rgba(210,140,110,.38);font-weight:600;}
+.tbb.zen-opt:hover{background:rgba(210,140,110,.32);border-color:rgba(210,140,110,.6);}
 
-/* Faktencheck – warmes Rose */
-.tbb.zen-fact{
-  background:rgba(196,132,122,.15);
-  color:var(--rose);
-  border-color:rgba(196,132,122,.3);
-}
-.tbb.zen-fact:hover{background:rgba(196,132,122,.25);border-color:var(--rose);}
+/* Faktencheck */
+.tbb.zen-fact{background:rgba(196,132,122,.18);color:var(--rose);border-color:rgba(196,132,122,.32);}
+.tbb.zen-fact:hover{background:rgba(196,132,122,.28);border-color:var(--rose);}
 
-/* Stil / Sprache – sanftes Blau */
-.tbb.zen-lang{
-  background:rgba(122,158,196,.12);
-  color:var(--sky);
-  border-color:rgba(122,158,196,.28);
-}
-.tbb.zen-lang:hover{background:rgba(122,158,196,.22);border-color:var(--sky);}
+/* Sprache/Stil */
+.tbb.zen-lang{background:rgba(100,140,120,.18);color:#7fb89a;border-color:rgba(100,140,120,.32);}
+.tbb.zen-lang:hover{background:rgba(100,140,120,.28);border-color:#7fb89a;}
 
-/* Vorlesen – salbeigrün */
-.tbb.zen-hear{
-  background:rgba(122,158,122,.15);
-  color:var(--sage);
-  border-color:rgba(122,158,122,.3);
-}
-.tbb.zen-hear:hover{background:rgba(122,158,122,.25);border-color:var(--sage);}
+/* Vorlesen */
+.tbb.zen-hear{background:rgba(122,158,122,.18);color:var(--sage);border-color:rgba(122,158,122,.32);}
+.tbb.zen-hear:hover{background:rgba(122,158,122,.28);border-color:var(--sage);}
 
-/* Diktat */
-.tbb.zen-dic{
-  background:rgba(201,169,110,.1);
-  color:var(--text2);
-  border-color:rgba(201,169,110,.2);
-}
-.tbb.zen-dic.active,
-.tbb.zen-dic[style*="color:var(--mint)"],
-.tbb.zen-dic[style*="color: var(--mint)"]{
-  background:rgba(94,207,176,.18);
-  color:var(--mint);
+/* Diktat – gleiche Größe wie andere */
+.tbb.zen-dic{background:rgba(201,169,110,.1);color:var(--text2);border-color:rgba(201,169,110,.22);}
+.tbb.zen-dic[style*="color:var(--mint)"]{
+  background:rgba(94,207,176,.2);color:var(--mint);
   border-color:rgba(94,207,176,.4);
-  animation:zen-breathe 1.8s ease-in-out infinite;
+  animation:zen-breathe 2s ease-in-out infinite;
 }
-@keyframes zen-breathe{0%,100%{box-shadow:0 0 0 0 rgba(94,207,176,.0)}50%{box-shadow:0 0 12px 2px rgba(94,207,176,.2)}}
+@keyframes zen-breathe{0%,100%{box-shadow:0 0 0 0 rgba(94,207,176,0)}50%{box-shadow:0 0 14px 3px rgba(94,207,176,.18)}}
 
 /* Löschen */
-.tbb.zen-del{
-  background:rgba(196,132,122,.08);
-  color:var(--rose);
-  border-color:rgba(196,132,122,.2);
-  opacity:.85;
-}
-.tbb.zen-del:hover{opacity:1;background:rgba(196,132,122,.18);border-color:rgba(196,132,122,.4);}
-.tsep{width:1px;height:16px;background:var(--border);margin:0 2px;flex-shrink:0}
+.tbb.zen-del{background:rgba(196,132,122,.1);color:var(--rose);border-color:rgba(196,132,122,.2);opacity:.85;}
+.tbb.zen-del:hover{opacity:1;background:rgba(196,132,122,.2);border-color:rgba(196,132,122,.4);}
+
+/* Tagmodus – etwas kräftiger */
+body.light .tbb{background:rgba(160,110,60,.07);border-color:rgba(160,110,60,.18);}
+body.light .tbb.zen-opt{background:rgba(210,130,90,.18);color:#c06830;border-color:rgba(210,130,90,.35);}
+body.light .tbb.zen-fact{background:rgba(180,90,80,.12);color:#b85040;border-color:rgba(180,90,80,.28);}
+body.light .tbb.zen-lang{background:rgba(80,120,100,.12);color:#3d7a60;border-color:rgba(80,120,100,.28);}
+body.light .tbb.zen-hear{background:rgba(80,140,80,.12);color:#3a7a50;border-color:rgba(80,140,80,.28);}
+
+
 .tsel{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 7px;border-radius:7px;font-size:12px;cursor:pointer;font-family:var(--fn)}
 .dd{position:relative}
 .ddm{position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;min-width:210px;z-index:300;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,.5);animation:fu .1s ease}
@@ -404,7 +383,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 
         <button class="tbb" onclick="openLang()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Sprache</button>
         <button class="tbb zen-dic" id="dicbtn" onclick="toggleDic()" style="display:none"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Diktat</button>
-        <button class="tbb" id="diclang" onclick="toggleDicLang()" title="Diktatsprache wechseln" style="display:none;font-size:11px;font-weight:700;min-width:36px">DE</button>
+        <button class="tbb zen-lang" id="diclang" onclick="toggleDicLang()" title="Diktatsprache" style="display:none;font-size:11px;font-weight:700;padding:7px 10px">DE</button>
         <button class="tbb zen-hear" id="spkbtn" onclick="toggleSpeak()"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>Vorlesen</button>
         <a class="tbb" id="audio-dl" style="display:none;text-decoration:none" title="Audio herunterladen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Audio ↓</a>
         <div class="tsep"></div>
