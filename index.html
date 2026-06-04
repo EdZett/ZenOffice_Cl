@@ -386,8 +386,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
             <button class="sz" onclick="setSz(this,'l')" title="Groß im Text">→Text L</button>
           </div>
           <div style="display:flex;gap:4px;align-items:center;border:1px solid var(--border);border-radius:8px;padding:3px;background:var(--bg3)">
-            <button id="sw-flux" class="sz on" onclick="setImgSrc('fal')" style="font-size:10px;padding:4px 8px">Flux</button>
-            <button id="sw-google" class="sz" onclick="setImgSrc('google')" style="font-size:10px;padding:4px 8px">Google</button>
+            <button id="sw-flux" class="sz on" onclick="setImgSrc('fal')" style="font-size:10px;padding:4px 8px">⚡Flux</button>
+            <button id="sw-google" class="sz" onclick="setImgSrc('google')" style="font-size:10px;padding:4px 8px">🌐Google</button>
           </div>
           <span style="font-size:10px;color:var(--text3);white-space:nowrap" id="img-prov-lbl">fal.ai · Flux</span>
         </div>
@@ -417,15 +417,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
         </div>
       </div>
       <div class="sg">
-        <div class="sgl">Pro-Stufe Bildgenerator</div>
-        <div class="sgd">Nano und Flash nutzen immer fal.ai Flux. Nur für die Pro-Stufe kannst du wählen:</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
-          <button class="bgh on-prov" id="prov-fal" onclick="setProv('fal')" style="font-size:12px">Flux Pro 1.1</button>
-          <button class="bgh" id="prov-imagen4" onclick="setProv('imagen4')" style="font-size:12px" title="Bereit – wird aktiv sobald Google Imagen 4 freigibt">⏳ Google Imagen 4</button>
+        <div class="sgl">Bildgenerator-Quelle</div>
+        <div class="sgd">Wähle für alle Stufen (Nano, Flash, Pro) zwischen Flux und Google Gemini:</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button class="bgh on-prov" id="prov-fal" onclick="setProv('fal')" style="font-size:12px">⚡ fal.ai Flux</button>
+          <button class="bgh" id="prov-google" onclick="setProv('google')" style="font-size:12px">🌐 Google Gemini</button>
         </div>
-        <div id="imagen4-note" style="display:none;margin-top:8px;font-size:11px;color:var(--text2);background:var(--bg3);padding:9px;border-radius:7px;border:1px solid var(--border)">
-          ⏳ <strong>Google Imagen 4</strong> – Umschalter ist bereit. Sobald Google die Modelle in deiner Region freischaltet, funktioniert es automatisch.<br>
-          Nano: <code>imagen-4.0-fast-generate-001</code> · Flash: <code>imagen-4.0-generate-001</code> · Pro: <code>imagen-4.0-ultra-generate-001</code>
+        <div style="margin-top:10px;font-size:11px;color:var(--text2);background:var(--bg3);padding:10px;border-radius:8px;border:1px solid var(--border);line-height:1.9">
+          <strong style="color:var(--gold)">⚡ fal.ai Flux:</strong><br>
+          Nano → flux/schnell &nbsp;·&nbsp; Flash → flux-pro/v1.1 &nbsp;·&nbsp; Pro → flux-2-pro<br><br>
+          <strong style="color:var(--gold)">🌐 Google Gemini:</strong><br>
+          Nano → gemini-2.5-flash-image &nbsp;·&nbsp; Flash → gemini-3.1-flash-image-preview &nbsp;·&nbsp; Pro → gemini-3-pro-image-preview
         </div>
       </div>
       <div class="info-box">🔒 Alle Schlüssel werden nur lokal in deinem Browser gespeichert. Sie verlassen deinen Computer nur für direkte API-Anfragen. Setze in jeder API-Console ein monatliches Ausgabelimit.</div>
@@ -524,14 +526,19 @@ function saveSet(){
   closeM('set-ovl'); updProvLbl();
 }
 function setProv(p){
-  imgProv=p; updProvBtns(); updProvLbl();
-  // Show Imagen 4 info note
-  const note=document.getElementById('imagen4-note');
-  if(note) note.style.display=p==='imagen4'?'block':'none';
+  imgProv=p;
+  localStorage.setItem('zo_prov',p);
+  updProvBtns();
+  const swFlux=document.getElementById('sw-flux');
+  const swGoogle=document.getElementById('sw-google');
+  if(swFlux) swFlux.classList.toggle('on', p==='fal');
+  if(swGoogle) swGoogle.classList.toggle('on', p==='google'||p==='imagen4');
+  if(typeof updImgProvLbl==='function') updImgProvLbl();
 }
 function updProvBtns(){
   document.querySelectorAll('.on-prov').forEach(b=>b.classList.remove('on-prov'));
-  const btn=document.getElementById('prov-'+imgProv);
+  const id = (imgProv==='google'||imgProv==='imagen4')?'prov-google':'prov-fal';
+  const btn=document.getElementById(id);
   if(btn) btn.classList.add('on-prov');
 }
 function updProvLbl(){
@@ -548,7 +555,7 @@ function closeSBonContent(){
   if(!sb.classList.contains('hidden')) sb.classList.add('hidden');
 }
 function toggleTheme(){document.body.classList.toggle('light')}
-function selE(e,btn){energy=e;document.querySelectorAll('.et').forEach(b=>b.classList.remove('on'));btn.classList.add('on');updStat()}
+function selE(e,btn){energy=e;document.querySelectorAll('.et').forEach(b=>b.classList.remove('on'));btn.classList.add('on');updStat();updImgProvLbl();}
 function swP(name,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
   document.getElementById(name+'-panel').classList.add('on');
@@ -1292,10 +1299,19 @@ async function genImg(){
 
 // ── fal.ai Flux – Nano/Flash/Pro ──
 async function genFal(prompt){
-  // Google Nano Banana + fal.ai Fallback via Vercel Proxy
+  // imgProv='google' → Google Gemini, sonst fal.ai Flux
+  const useGoogle = imgProv==='google' || refImages.length>0;
   const r=await fetch('/api/image',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt,energy,image_size:IMG_SIZES[imgSz].fal,num_inference_steps:FAL_STEPS[energy],model:FAL[energy],refImages:refImages.map(r=>r.data)})
+    body:JSON.stringify({
+      prompt,
+      energy,
+      useGoogle, // Signal an Proxy
+      image_size:IMG_SIZES[imgSz].fal,
+      num_inference_steps:FAL_STEPS[energy],
+      model:FAL[energy],
+      refImages:refImages.map(r=>r.data)
+    })
   });
   if(!r.ok){
     const e=await r.json().catch(()=>({}));
@@ -1437,7 +1453,7 @@ function insertV(btn,size){
   const url=card.dataset.url||'';
   if(!url){alert('Kein Bild vorhanden.');return;}
   const ed=document.getElementById('editor');
-  const sizes={s:'180px',m:'320px',l:'500px'};
+  const sizes={s:'280px',m:'480px',l:'100%'};
   const img=document.createElement('img');
   img.src=url;
   img.style.cssText='width:'+sizes[size]+';max-width:100%;border-radius:8px;margin:10px 0;display:block';
