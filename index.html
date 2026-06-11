@@ -554,7 +554,7 @@ let undoStack=[], undoPtr=-1;
 window.addEventListener('load',()=>{
   loadSet(); buildLangs(); updStat(); pushUndo(); renderProjs();
   // Diktat nur auf Desktop anzeigen
-  if(!/Mobi|Android/i.test(navigator.userAgent)){
+  if(window.innerWidth > 768){
     document.getElementById('dicbtn').style.display='flex';
     document.getElementById('diclang').style.display='flex';
   }
