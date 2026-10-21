@@ -1678,7 +1678,7 @@ async function genImagen4(prompt){
   const d=await r.json();
   const b64=d.predictions?.[0]?.bytesBase64Encoded||d.predictions?.[0]?.image?.imageBytes;
   if(!b64) throw new Error('Imagen 4: Kein Bild – evtl. noch nicht in deiner Region verfügbar');
-  return 'data:image/png;base64,'+b64;
+  return 'data:'+(d.predictions?.[0]?.mimeType||'image/png')+';base64,'+b64;
 }
 
 // ── Vision Karten-Aktionen ──

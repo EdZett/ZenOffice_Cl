@@ -76,7 +76,7 @@ export default async function handler(req, res) {
         const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
         if (part?.inlineData?.data) {
           res.status(200).json({
-            images: [{ url: `data:image/png;base64,${part.inlineData.data}` }],
+            images: [{ url: `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}` }],
             source: 'google-ref',
             model: visionModel
           });
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
         const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
         if (part?.inlineData?.data) {
           res.status(200).json({
-            images: [{ url: `data:image/png;base64,${part.inlineData.data}` }],
+            images: [{ url: `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}` }],
             source: 'google',
             model: visionModel
           });
