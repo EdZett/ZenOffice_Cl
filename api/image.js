@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  const { prompt, energy, model: falModel, image_size, num_inference_steps, refImages } = req.body;
+  const { prompt, energy, model: falModel, image_size, num_inference_steps, refImages, aspect } = req.body;
   if (!prompt) { res.status(400).json({ error: 'prompt required' }); return; }
 
   const googleKey = process.env.GOOGLE_KEY;
@@ -26,6 +26,32 @@ export default async function handler(req, res) {
   };
 
   const visionModel = visionModels[energy] || visionModels.flash;
+  const validAspects = ['1:1','16:9','9:16','3:2','4:3','2:3','3:4'];
+  const aspectRatio = validAspects.includes(aspect) ? aspect : null;
+
+  // Gemini-Bildaufruf: erst mit Seitenverhältnis, bei Ablehnung ohne
+  async function callGeminiImage(parts) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${visionModel}:generateContent?key=${googleKey}`;
+    const make = (withAspect) => ({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          responseModalities: ['IMAGE', 'TEXT'],
+          ...(withAspect && aspectRatio ? { imageConfig: { aspectRatio } } : {})
+        }
+      })
+    });
+    let r = await fetch(url, make(true));
+    let data = await r.json();
+    if (!r.ok && aspectRatio && r.status === 400) {
+      console.warn('Seitenverhältnis abgelehnt, neuer Versuch ohne:', data?.error?.message);
+      r = await fetch(url, make(false));
+      data = await r.json();
+    }
+    return { r, data };
+  }
   const useFalModel = falModel || falModels[energy] || falModels.nano;
 
   // Wenn Referenzbilder vorhanden → IMMER Google Gemini nutzen
@@ -43,19 +69,7 @@ export default async function handler(req, res) {
 
       console.log('Referenzbilder:', refImages.length, '→ Google', visionModel);
 
-      const r = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${visionModel}:generateContent?key=${googleKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts }],
-            generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
-          })
-        }
-      );
-
-      const data = await r.json();
+      const { r, data } = await callGeminiImage(parts);
       if (!r.ok) {
         console.warn('Google Referenzbild Fehler:', r.status, data?.error?.message);
       } else {
@@ -63,7 +77,8 @@ export default async function handler(req, res) {
         if (part?.inlineData?.data) {
           res.status(200).json({
             images: [{ url: `data:image/png;base64,${part.inlineData.data}` }],
-            source: 'google-ref'
+            source: 'google-ref',
+            model: visionModel
           });
           return;
         }
@@ -83,24 +98,14 @@ export default async function handler(req, res) {
   if (googleKey) {
     try {
       const parts = [{ text: prompt }];
-      const r = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${visionModel}:generateContent?key=${googleKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts }],
-            generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
-          })
-        }
-      );
-      const data = await r.json();
+      const { r, data } = await callGeminiImage(parts);
       if (r.ok) {
         const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
         if (part?.inlineData?.data) {
           res.status(200).json({
             images: [{ url: `data:image/png;base64,${part.inlineData.data}` }],
-            source: 'google'
+            source: 'google',
+            model: visionModel
           });
           return;
         }
@@ -128,7 +133,7 @@ export default async function handler(req, res) {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data?.detail || data?.error || 'fal.ai Fehler');
-      res.status(200).json({ ...data, source: 'flux' });
+      res.status(200).json({ ...data, source: 'flux', model: useFalModel });
       return;
     } catch(e) {
       res.status(500).json({ error: 'fal.ai: ' + e.message });
