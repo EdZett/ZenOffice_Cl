@@ -259,7 +259,39 @@ body.light .tbb.zen-hear{background:rgba(80,140,80,.12);color:#3a7a50;border-col
 .empty p{font-size:13px;line-height:1.7}
 .empty strong{color:var(--text2)}
 .info-box{background:var(--bg3);padding:11px;border-radius:8px;border:1px solid var(--border);font-size:11px;color:var(--text2);line-height:1.7}
-@media(max-width:600px){:root{--sw:240px}#editor{padding:20px 22px}.vcard{width:100%}#dicbtn{display:none!important}}
+/* VISION – große, gut erreichbare Bedienelemente */
+#vision-panel{overflow-y:auto;-webkit-overflow-scrolling:touch}
+#varea{flex:none;overflow:visible;min-height:120px}
+.vctrl{border-top:none;background:none;padding:6px 16px 28px;max-width:760px;width:100%;margin:0 auto}
+.vbox{background:var(--bg2);border:1px solid var(--border);border-radius:22px;padding:16px;box-shadow:0 8px 28px rgba(0,0,0,.14)}
+.vlbl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text3);font-weight:600;margin:4px 2px 8px}
+.vseg{display:grid;gap:8px;margin-bottom:12px;background:var(--bg3);padding:5px;border-radius:16px;border:1px solid var(--border)}
+.vseg.two{grid-template-columns:1fr 1fr}.vseg.three{grid-template-columns:repeat(3,1fr)}
+.vseg-b{min-height:48px;border:none;border-radius:12px;background:none;color:var(--text2);font-family:var(--fn);font-size:13px;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:all .15s;padding:8px 6px}
+.vseg-b:hover{color:var(--text)}
+.vseg-b.on{background:var(--sage);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.vseg.three .vseg-b.on{background:var(--bg);color:var(--gold);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.vasp{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.vasp .vseg-b{background:var(--bg2);border:1px solid var(--border);min-height:48px}
+.vasp .vseg-b.on{background:var(--rose);border-color:var(--rose);color:#fff}
+.vta{width:100%;min-height:120px;height:auto;font-size:16px;line-height:1.5;padding:14px;border-radius:14px;margin:4px 0 10px;flex:none;resize:vertical}
+.vchk{display:flex;align-items:center;gap:12px;background:var(--bg3);border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:var(--text);cursor:pointer;line-height:1.35}
+.vchk input{width:22px;height:22px;accent-color:var(--rose);flex-shrink:0}
+.vact-row{display:flex;gap:10px;align-items:stretch}
+.vib{width:52px;min-height:52px;flex-shrink:0;border:none;border-radius:16px;background:var(--bg3);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.vib:hover{background:var(--bg4)}
+.vib svg{width:22px;height:22px;stroke:var(--rose);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.vgo{flex:1;min-height:52px;border:none;border-radius:16px;background:var(--rose);color:#fff;font-family:var(--fn);font-size:14px;font-weight:700;letter-spacing:.14em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 18px rgba(196,132,122,.35);transition:all .15s}
+.vgo:hover{filter:brightness(1.07)}.vgo:active{transform:scale(.98)}
+.vgo svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.8}
+.vprov{font-size:11px;color:var(--text3);text-align:center;margin-top:14px;letter-spacing:.04em}
+.vbadge{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--sage);background:rgba(122,158,126,.14);border-radius:20px;padding:4px 10px;margin-bottom:8px}
+.vbtn{min-height:44px;font-size:13px;padding:8px 14px;border-radius:12px;gap:6px}
+.vbtn svg{width:15px;height:15px}
+.vbtns{gap:8px}
+.leafbtn{padding:8px;min-width:44px;min-height:44px;justify-content:center}
+.leafbtn:hover svg{stroke:var(--gold)}
+@media(max-width:600px){:root{--sw:240px}#editor{padding:20px 22px}.vcard{width:100%}}
 </style>
 </head>
 <body>
@@ -319,8 +351,8 @@ body.light .tbb.zen-hear{background:rgba(80,140,80,.12);color:#3a7a50;border-col
 <!-- ═══ MAIN ═══ -->
 <div id="main">
   <div id="topbar">
-    <button class="ib" onclick="toggleSB()">
-      <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <button class="ib leafbtn" onclick="toggleSB()" title="Seitenleiste ein-/ausblenden" aria-label="Seitenleiste ein-/ausblenden">
+      <svg viewBox="0 0 24 24" width="28" height="28" stroke="var(--sage)" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
     </button>
     <input type="text" id="dtitle" placeholder="Unbenannter Text…" oninput="autoSaveTitle()">
     <div id="aip"><div class="pr"></div><span id="ailbl">KI arbeitet…</span></div>
@@ -347,7 +379,7 @@ body.light .tbb.zen-hear{background:rgba(80,140,80,.12);color:#3a7a50;border-col
         </select>
         <div class="tsep"></div>
         <button class="tbb" onclick="doUndo()" title="Rückgängig"><svg viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M3 10a9 9 0 1 0 2.6-6.4" stroke-width="2.2"/><polyline points="3 4 3 10 9 10" stroke-width="2.2"/></svg></button>
-        <button class="tbb" onclick="doRedo()" title="Wiederholen" id="redo-btn"><svg viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M21 10a9 9 0 1 0-2.6-6.4" stroke-width="2.2"/><polyline points="21 4 21 10 15 10" stroke-width="2.2"/></svg></button>
+        <button class="tbb" onclick="doRedo()" title="Wiederholen" id="redo-btn"><svg viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M21 10a9 9 0 1 1-2.6-6.4" stroke-width="2.2"/><polyline points="21 4 21 10 15 10" stroke-width="2.2"/></svg></button>
         <button class="tbb" onclick="copyText()" title="Markierten Text kopieren (oder alles)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Kopieren</button>
         <button class="tbb zen-del" onclick="deleteText()" title="Markierten Text löschen (oder alles)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Löschen</button>
         <div class="tsep"></div>
@@ -423,26 +455,38 @@ body.light .tbb.zen-hear{background:rgba(80,140,80,.12);color:#3a7a50;border-col
     <div class="panel" id="vision-panel">
       <div id="varea" ondragover="event.preventDefault();this.style.outline='2px dashed var(--gold)'" ondragleave="this.style.outline=''" ondrop="handleVisionDrop(event);this.style.outline=''"><div class="empty"><svg viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg><p>Beschreibe ein Bild und klicke <strong>Erstellen</strong><br><span style="font-size:11px;opacity:.6">oder Bild hier hineinziehen als Referenz</span></p></div></div>
       <div class="vctrl">
-        <div class="vrow">
-          <textarea class="vta" id="vinp" placeholder="Beschreibe dein Bild… oder nutze ✦ Prompt verbessern"></textarea>
-          <div class="vsid">
-            <button class="bg" onclick="enhPrompt()" title="Prompt verbessern" style="padding:8px 10px"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
-            <button class="bgh" onclick="document.getElementById('ref-file').click()" title="Referenzbild" style="padding:8px 10px"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+        <div class="vbox">
+          <div class="vlbl">Bildprogramm</div>
+          <div class="vseg two">
+            <button id="sw-google" class="vseg-b" onclick="setImgSrc('google')">🌐 Google Gemini</button>
+            <button id="sw-flux" class="vseg-b on" onclick="setImgSrc('fal')">⚡ Flux</button>
+          </div>
+          <div class="vlbl">Qualitätsstufe</div>
+          <div class="vseg three" id="vq">
+            <button class="vseg-b on" data-e="nano" onclick="selEName('nano')">Nano</button>
+            <button class="vseg-b" data-e="flash" onclick="selEName('flash')">Flash</button>
+            <button class="vseg-b" data-e="pro" onclick="selEName('pro')">Pro</button>
+          </div>
+          <textarea class="vta" id="vinp" placeholder="Beschreibe, was entstehen soll…"></textarea>
+          <label class="vchk"><input type="checkbox" id="vuseref" checked><span>Hochgeladene Bilder als Stil-/Personenreferenz mitgeben</span></label>
+          <div class="vact-row">
+            <button class="vib" onclick="clearVinp()" title="Eingabe leeren" aria-label="Eingabe leeren"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+            <button class="vib" onclick="enhPrompt()" title="Prompt verbessern lassen" aria-label="Prompt verbessern"><svg viewBox="0 0 24 24"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5"/></svg></button>
+            <button class="vib" onclick="document.getElementById('ref-file').click()" title="Referenzbild hinzufügen" aria-label="Referenzbild hinzufügen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+            <button class="vgo" onclick="genImg()"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>ERSTELLEN</button>
           </div>
         </div>
-        <div class="vacts">
-          <button class="bg" onclick="genImg()"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Erstellen</button>
-          <div class="szp" title="Größe im Textbereich wenn du →Text drückst">
-            <button class="sz on" onclick="setSz(this,'s')" title="Klein im Text">→Text S</button>
-            <button class="sz" onclick="setSz(this,'m')" title="Mittel im Text">→Text M</button>
-            <button class="sz" onclick="setSz(this,'l')" title="Groß im Text">→Text L</button>
-          </div>
-          <div style="display:flex;gap:4px;align-items:center;border:1px solid var(--border);border-radius:8px;padding:3px;background:var(--bg3)">
-            <button id="sw-flux" class="sz on" onclick="setImgSrc('fal')" style="font-size:10px;padding:4px 8px">⚡Flux</button>
-            <button id="sw-google" class="sz" onclick="setImgSrc('google')" style="font-size:10px;padding:4px 8px">🌐Google</button>
-          </div>
-          <span style="font-size:10px;color:var(--text3);white-space:nowrap" id="img-prov-lbl">fal.ai · Flux</span>
+        <div class="vlbl" style="margin-top:14px">Seitenverhältnis</div>
+        <div class="vasp" id="vasp">
+          <button class="vseg-b on" data-a="1:1" onclick="setAsp('1:1')">1:1</button>
+          <button class="vseg-b" data-a="16:9" onclick="setAsp('16:9')">16:9</button>
+          <button class="vseg-b" data-a="9:16" onclick="setAsp('9:16')">9:16</button>
+          <button class="vseg-b" data-a="3:2" onclick="setAsp('3:2')">3:2</button>
+          <button class="vseg-b" data-a="4:3" onclick="setAsp('4:3')">4:3</button>
+          <button class="vseg-b" data-a="2:3" onclick="setAsp('2:3')">2:3</button>
+          <button class="vseg-b" data-a="3:4" onclick="setAsp('3:4')">3:4</button>
         </div>
+        <div class="vprov" id="img-prov-lbl">fal.ai · Flux</div>
       </div>
     </div>
 
@@ -552,9 +596,9 @@ let undoStack=[], undoPtr=-1;
 // INIT
 // ═══════════════════════════════════════
 window.addEventListener('load',()=>{
-  loadSet(); buildLangs(); updStat(); pushUndo(); renderProjs();
-  // Diktat nur auf Desktop anzeigen
-  if(window.innerWidth > 768){
+  loadSet(); buildLangs(); updStat(); pushUndo(); renderProjs(); setImgSrc(imgProv);
+  // Diktat überall anzeigen, wo der Browser Spracherkennung kann (auch Handy)
+  if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
     document.getElementById('dicbtn').style.display='flex';
     document.getElementById('diclang').style.display='flex';
   }
@@ -607,8 +651,16 @@ function closeSBonContent(){
   if(!sb.classList.contains('hidden')) sb.classList.add('hidden');
 }
 function toggleTheme(){document.body.classList.toggle('light')}
-function selE(e,btn){energy=e;document.querySelectorAll('.et').forEach(b=>b.classList.remove('on'));btn.classList.add('on');updStat();updImgProvLbl();}
+function selE(e,btn){energy=e;document.querySelectorAll('.et').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.querySelectorAll('#vq .vseg-b').forEach(b=>b.classList.toggle('on',b.dataset.e===e));updStat();updImgProvLbl();}
+// Jeder Bereich merkt sich seinen eigenen Titel (Text-Titel / Bildname)
+const panelTitles={text:'',vision:''};
+let curPanel='text';
 function swP(name,btn){
+  const tEl=document.getElementById('dtitle');
+  panelTitles[curPanel]=tEl.value;
+  curPanel=name;
+  tEl.value=panelTitles[name]||'';
+  tEl.placeholder = name==='vision' ? 'Bildname…' : (name==='sheet' ? 'Tabellenname…' : 'Unbenannter Text…');
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
   document.getElementById(name+'-panel').classList.add('on');
   document.querySelectorAll('.ni').forEach(b=>b.classList.remove('on'));
@@ -680,6 +732,7 @@ function onEdit(){updStat();clearTimeout(editT);editT=setTimeout(pushUndo,1500)}
 
 let autoSaveTimer=null;
 function autoSaveTitle(){
+  if(curPanel!=='text') return; // Bildname/Tabellenname nur beim Speichern verwenden
   clearTimeout(autoSaveTimer);
   autoSaveTimer=setTimeout(()=>{
     const title=document.getElementById('dtitle').value.trim();
@@ -1297,10 +1350,27 @@ function setImgSrc(src){
   document.getElementById('sw-flux').classList.toggle('on', src==='fal');
   document.getElementById('sw-google').classList.toggle('on', src==='google');
   imgProv = src==='google' ? 'google' : 'fal';
-  const lbl = src==='google' ? 'Google · Gemini Bild' : 'fal.ai · Flux';
-  document.getElementById('img-prov-lbl').textContent=lbl;
+  updImgProvLbl();
   localStorage.setItem('zo_prov', imgProv);
 }
+
+// ── Vision: Bedienung ──
+let imgAsp='1:1';
+let lastGenInfo=null;
+const LONG_SIDE={nano:768,flash:1024,pro:1024};
+function aspectSize(asp,e){
+  const [a,b]=asp.split(':').map(Number); const L=LONG_SIDE[e]||1024;
+  const r=v=>Math.max(256,Math.round(v/16)*16);
+  return a>=b?{width:L,height:r(L*b/a)}:{width:r(L*a/b),height:L};
+}
+function setAsp(a){imgAsp=a;document.querySelectorAll('#vasp .vseg-b').forEach(b=>b.classList.toggle('on',b.dataset.a===a));updImgProvLbl()}
+function selEName(e){const btn=[...document.querySelectorAll('.et')].find(b=>b.textContent.trim().toLowerCase()===e);if(btn)selE(e,btn)}
+function updImgProvLbl(){
+  const el=document.getElementById('img-prov-lbl'); if(!el) return;
+  el.textContent=(imgProv==='google'?'Google · Gemini Bild':'fal.ai · Flux')+' · '+energy.charAt(0).toUpperCase()+energy.slice(1)+' · '+imgAsp;
+}
+function clearVinp(){const i=document.getElementById('vinp');i.value='';i.focus()}
+function activeRefs(){const c=document.getElementById('vuseref');return (c&&!c.checked)?[]:refImages.map(r=>r.data)}
 
 async function enhPrompt(){
   const inp=document.getElementById('vinp'); if(!inp.value.trim()) return;
@@ -1309,7 +1379,7 @@ async function enhPrompt(){
     let r='';
     if(true){
       r=await callGemini('gemini-1.5-pro',
-        `Du bist ein Experte für KI-Bildgenerierung. Wandle folgende Beschreibung in einen professionellen englischen Bildprompt um. Füge hinzu: Lichtstimmung (goldene Stunde, dramatisch, weich etc.), Komposition, Kamera-Settings (Brennweite, Bokeh), Farbpalette, Atmosphäre, Kunststil (fotorealistisch, Ölgemälde, etc.). Gib NUR den fertigen Prompt zurück:\n\n${inp.value}`,
+        `Du bist ein Experte für KI-Bildgenerierung. Wandle folgende Beschreibung in einen professionellen englischen Bildprompt um. Behalte ausnahmslos ALLE Details, Stilvorgaben und Wünsche des Nutzers bei (zum Beispiel besonders betonte Gesichtsmerkmale) und lasse nichts weg. Ergänze nur dort, wo nichts vorgegeben ist: Lichtstimmung (goldene Stunde, dramatisch, weich etc.), Komposition, Kamera-Settings (Brennweite, Bokeh), Farbpalette, Atmosphäre, Kunststil (fotorealistisch, Ölgemälde, etc.). Gib NUR den fertigen Prompt zurück:\n\n${inp.value}`,
         {temperature:0.7}
       );
     }
@@ -1327,6 +1397,7 @@ async function genImg(){
   const energyLabel={nano:'Nano · Flux Schnell',flash:'Flash · Flux Dev',pro:'Pro · Flux Pro'}[energy];
   card.innerHTML=`<div class="vimg" id="vimg-${Date.now()}"><div class="vph"><div class="spin"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><span>Generiere…</span></div></div><div class="vbody"><div class="vpt">${prompt.substring(0,80)}${prompt.length>80?'…':''}</div><div class="vbtns"></div></div>`;
   area.prepend(card); curVCard=card;
+  card.scrollIntoView({behavior:'smooth',block:'start'});
   showAI('Bild wird generiert…');
   try{
     let url=null;
@@ -1341,6 +1412,10 @@ async function genImg(){
     vimgDiv.innerHTML='';
     vimgDiv.appendChild(imgEl);
     card.dataset.prompt=prompt; card.dataset.url=url;
+    if(lastGenInfo&&lastGenInfo.model){
+      const eng=lastGenInfo.source&&lastGenInfo.source.startsWith('google')?'Google':'Flux';
+      card.querySelector('.vbody').insertAdjacentHTML('afterbegin',`<div class="vbadge">${eng} · ${lastGenInfo.model}</div>`);
+    }
     addVBtns(card);
     // Nicht automatisch speichern – Nutzer entscheidet selbst
   }catch(e){
@@ -1352,17 +1427,18 @@ async function genImg(){
 // ── fal.ai Flux – Nano/Flash/Pro ──
 async function genFal(prompt){
   // imgProv='google' → Google Gemini, sonst fal.ai Flux
-  const useGoogle = imgProv==='google' || refImages.length>0;
+  const useGoogle = imgProv==='google' || activeRefs().length>0;
   const r=await fetch('/api/image',{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
       prompt,
       energy,
       useGoogle, // Signal an Proxy
-      image_size:IMG_SIZES[imgSz].fal,
+      image_size:aspectSize(imgAsp,energy),
+      aspect:imgAsp,
       num_inference_steps:FAL_STEPS[energy],
       model:FAL[energy],
-      refImages:refImages.map(r=>r.data)
+      refImages:activeRefs()
     })
   });
   if(!r.ok){
@@ -1372,6 +1448,7 @@ async function genFal(prompt){
   const d=await r.json();
   const url=d.images?.[0]?.url||d.image?.url;
   if(!url) throw new Error('Kein Bild in der Antwort');
+  lastGenInfo={source:d.source,model:d.model};
   return url;
 }
 
@@ -1379,7 +1456,7 @@ async function genFal(prompt){
 async function genGoogle(prompt){
   const r=await fetch('/api/image',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt,energy,refImages:refImages.map(r=>r.data)})
+    body:JSON.stringify({prompt,energy,aspect:imgAsp,refImages:activeRefs()})
   });
   if(!r.ok){
     const e=await r.json().catch(()=>({}));
@@ -1388,6 +1465,7 @@ async function genGoogle(prompt){
   const d=await r.json();
   const url=d.images?.[0]?.url;
   if(!url) throw new Error('Google: Kein Bild in der Antwort');
+  lastGenInfo={source:d.source,model:d.model};
   return url;
 }
 
