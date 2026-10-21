@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  const { prompt, energy, model: falModel, image_size, num_inference_steps, refImages, aspect } = req.body;
+  const { prompt, energy, model: falModel, image_size, num_inference_steps, refImages, aspect, useGoogle } = req.body;
   if (!prompt) { res.status(400).json({ error: 'prompt required' }); return; }
 
   const googleKey = process.env.GOOGLE_KEY;
@@ -23,6 +23,13 @@ export default async function handler(req, res) {
     nano:  'fal-ai/flux/schnell',
     flash: 'fal-ai/flux-pro/v1.1',
     pro:   'fal-ai/flux-2-pro',
+  };
+
+  // fal.ai Flux Modelle, die Referenzbilder verstehen
+  const falRefModels = {
+    nano:  'fal-ai/flux-pro/kontext/multi',
+    flash: 'fal-ai/flux-pro/kontext/multi',
+    pro:   'fal-ai/flux-2-pro/edit',
   };
 
   const visionModel = visionModels[energy] || visionModels.flash;
@@ -54,8 +61,50 @@ export default async function handler(req, res) {
   }
   const useFalModel = falModel || falModels[energy] || falModels.nano;
 
-  // Wenn Referenzbilder vorhanden → IMMER Google Gemini nutzen
-  // Flux kann keine Referenzbilder verarbeiten
+  // fal.ai-Aufruf: ohne Referenzbilder Text-zu-Bild, mit Referenzbildern Kontext/Edit
+  async function callFal() {
+    let model, body;
+    if (hasRefImages) {
+      model = falRefModels[energy] || falRefModels.nano;
+      const image_urls = refImages.slice(0, 4);
+      body = model.includes('kontext')
+        ? { prompt, image_urls, num_images: 1, ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}) }
+        : { prompt, image_urls, image_size: image_size || 'auto' };
+    } else {
+      model = useFalModel;
+      const steps = energy === 'pro' ? 28 : energy === 'flash' ? 28 : 4;
+      body = {
+        prompt,
+        image_size: image_size || { width: 512, height: 512 },
+        num_inference_steps: num_inference_steps || steps,
+        num_images: 1,
+        enable_safety_checker: true
+      };
+    }
+    const r = await fetch(`https://fal.run/${model}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Key ${falKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      const d = data?.detail || data?.error || 'fal.ai Fehler';
+      throw new Error(typeof d === 'string' ? d : JSON.stringify(d));
+    }
+    return { ...data, source: hasRefImages ? 'flux-ref' : 'flux', model };
+  }
+
+  // Flux gewählt → wirklich Flux, auch mit Referenzbildern
+  if (useGoogle === false && falKey) {
+    try {
+      res.status(200).json(await callFal());
+    } catch(e) {
+      res.status(500).json({ error: 'fal.ai: ' + e.message });
+    }
+    return;
+  }
+
+  // Google gewählt mit Referenzbildern → Gemini
   if (hasRefImages && googleKey) {
     try {
       const parts = [{ text: prompt }];
@@ -88,7 +137,7 @@ export default async function handler(req, res) {
     }
     // Wenn Google fehlschlägt bei Referenzbildern → Fehler zurückgeben
     res.status(500).json({ 
-      error: 'Referenzbilder konnten nicht verarbeitet werden. Bitte Google-Modus verwenden oder Referenzbilder entfernen.' 
+      error: 'Google konnte die Referenzbilder nicht verarbeiten. Bitte Flux versuchen oder Referenzbilder entfernen.' 
     });
     return;
   }
@@ -118,22 +167,8 @@ export default async function handler(req, res) {
 
   // Fallback: fal.ai Flux (nur ohne Referenzbilder)
   if (falKey) {
-    const steps = energy === 'pro' ? 28 : energy === 'flash' ? 28 : 4;
     try {
-      const r = await fetch(`https://fal.run/${useFalModel}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Key ${falKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          image_size: image_size || { width: 512, height: 512 },
-          num_inference_steps: num_inference_steps || steps,
-          num_images: 1,
-          enable_safety_checker: true
-        })
-      });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data?.detail || data?.error || 'fal.ai Fehler');
-      res.status(200).json({ ...data, source: 'flux', model: useFalModel });
+      res.status(200).json(await callFal());
       return;
     } catch(e) {
       res.status(500).json({ error: 'fal.ai: ' + e.message });
