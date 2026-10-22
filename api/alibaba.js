@@ -20,10 +20,10 @@ export default async function handler(req, res) {
     flash: 'wan2.6-t2i',
     pro:   'qwen-image-3.0-pro',
   };
-  // wan2.6-t2i kennt keine Referenzbilder → bei Flash dann Qwen 2.1 Pro
+  // wan2.6-t2i kennt keine Referenzbilder → bei Flash dann Qwen 3.0
   const refModels = {
     nano:  'qwen-image-2.1-turbo',
-    flash: 'qwen-image-2.1-pro',
+    flash: 'qwen-image-3.0',
     pro:   'qwen-image-3.0-pro',
   };
   const model = (hasRefImages ? refModels : models)[energy] || (hasRefImages ? refModels : models).flash;
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
   const text = hasRefImages
     ? 'Use the attached reference image(s) as the base. Keep the people and main subjects from the reference recognizable and unchanged unless the instruction explicitly says otherwise. If the image should be extended, keep the original content and seamlessly add matching scenery around it. Instruction: ' + prompt
     : prompt;
-  const maxRefs = model === 'qwen-image-3.0-pro' ? 3 : 4;
+  const maxRefs = model.startsWith('qwen-image-3.0') ? 3 : 4;
   const content = [
     ...(hasRefImages ? refImages.slice(0, maxRefs).map(image => ({ image })) : []),
     { text }
