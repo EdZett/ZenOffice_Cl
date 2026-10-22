@@ -267,7 +267,7 @@ body.light .tbb.zen-hear{background:rgba(80,140,80,.12);color:#3a7a50;border-col
 .vbox{background:var(--bg2);border:1px solid var(--border);border-radius:22px;padding:16px;box-shadow:0 8px 28px rgba(0,0,0,.14)}
 .vlbl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text3);font-weight:600;margin:4px 2px 8px}
 .vseg{display:grid;gap:8px;margin-bottom:12px;background:var(--bg3);padding:5px;border-radius:16px;border:1px solid var(--border)}
-.vseg.two{grid-template-columns:1fr 1fr}.vseg.three{grid-template-columns:repeat(3,1fr)}
+.vseg.two{grid-template-columns:1fr 1fr}.vseg.prov3{grid-template-columns:repeat(3,1fr)}.vseg.three{grid-template-columns:repeat(3,1fr)}
 .vseg-b{min-height:48px;border:none;border-radius:12px;background:none;color:var(--text2);font-family:var(--fn);font-size:13px;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:all .15s;padding:8px 6px}
 .vseg-b:hover{color:var(--text)}
 .vseg-b.on{background:var(--sage);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.2)}
@@ -513,9 +513,10 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
       <div class="vctrl">
         <div class="vbox">
           <div class="vlbl">Bildprogramm</div>
-          <div class="vseg two">
-            <button id="sw-google" class="vseg-b" onclick="setImgSrc('google')">🌐 Google Gemini</button>
+          <div class="vseg prov3">
+            <button id="sw-google" class="vseg-b" onclick="setImgSrc('google')">🌐 Gemini</button>
             <button id="sw-flux" class="vseg-b on" onclick="setImgSrc('fal')">⚡ Flux</button>
+            <button id="sw-ali" class="vseg-b" onclick="setImgSrc('alibaba')">🏮 Alibaba</button>
           </div>          <div class="vlbl">Qualitätsstufe</div>
           <div class="vseg three" id="vq">
             <button class="vseg-b on" data-e="nano" onclick="selEName('nano')">Nano</button>
@@ -697,6 +698,7 @@ function setProv(p){
   const swGoogle=document.getElementById('sw-google');
   if(swFlux) swFlux.classList.toggle('on', p==='fal');
   if(swGoogle) swGoogle.classList.toggle('on', p==='google'||p==='imagen4');
+  document.getElementById('sw-ali')?.classList.toggle('on', p==='alibaba');
   if(typeof updImgProvLbl==='function') updImgProvLbl();
 }
 function updProvBtns(){
@@ -706,7 +708,7 @@ function updProvBtns(){
   if(btn) btn.classList.add('on-prov');
 }
 function updProvLbl(){
-  const provLabels={fal:'fal.ai · Flux',google:'Google · Gemini Bild',imagen4:'Google Imagen 4'};
+  const provLabels={fal:'fal.ai · Flux',google:'Google · Gemini Bild',imagen4:'Google Imagen 4',alibaba:'Alibaba · Qwen/Wan'};
   document.getElementById('img-prov-lbl').textContent=provLabels[imgProv]||'fal.ai · Flux';
 }
 
@@ -1514,10 +1516,11 @@ function setSz(btn,s){
   btn.classList.add('on');
 }
 function setImgSrc(src){
-  // Flux oder Google als Bildquelle
-  document.getElementById('sw-flux').classList.toggle('on', src==='fal');
-  document.getElementById('sw-google').classList.toggle('on', src==='google');
-  imgProv = src==='google' ? 'google' : 'fal';
+  // Flux, Google oder Alibaba als Bildquelle
+  imgProv = (src==='google'||src==='alibaba') ? src : 'fal';
+  document.getElementById('sw-flux').classList.toggle('on', imgProv==='fal');
+  document.getElementById('sw-google').classList.toggle('on', imgProv==='google');
+  document.getElementById('sw-ali').classList.toggle('on', imgProv==='alibaba');
   updImgProvLbl();
   localStorage.setItem('zo_prov', imgProv);
 }
@@ -1539,7 +1542,7 @@ function setAsp(a){imgAsp=a;document.querySelectorAll('#vasp .vseg-b').forEach(b
 function selEName(e){const btn=[...document.querySelectorAll('.et')].find(b=>b.textContent.trim().toLowerCase()===e);if(btn)selE(e,btn)}
 function updImgProvLbl(){
   const el=document.getElementById('img-prov-lbl'); if(!el) return;
-  el.textContent=(imgProv==='google'?'Google · Gemini Bild':'fal.ai · Flux')+' · '+energy.charAt(0).toUpperCase()+energy.slice(1)+' · '+imgAsp;
+  el.textContent=({google:'Google · Gemini Bild',alibaba:'Alibaba · Qwen/Wan'}[imgProv]||'fal.ai · Flux')+' · '+energy.charAt(0).toUpperCase()+energy.slice(1)+' · '+imgAsp;
 }
 function clearVinp(){const i=document.getElementById('vinp');i.value='';i.focus()}
 function activeRefs(){const c=document.getElementById('vuseref');return (c&&!c.checked)?[]:refImages.map(r=>r.data)}
@@ -1575,8 +1578,7 @@ async function genImg(){
   try{
     let url=null;
     // Google oder Flux je nach Umschalter
-    if(imgProv==='google') url=await genGoogle(prompt);
-    else url=await genFal(prompt);
+    url=await genByProv(prompt);
     const imgEl=document.createElement('img');
     const vimgDiv=card.querySelector('.vimg');
     fitVImg(vimgDiv,imgEl);
@@ -1586,7 +1588,8 @@ async function genImg(){
     vimgDiv.appendChild(imgEl);
     card.dataset.prompt=prompt; card.dataset.url=url;
     if(lastGenInfo&&lastGenInfo.model){
-      const eng=lastGenInfo.source&&lastGenInfo.source.startsWith('google')?'Google':'Flux';
+      const src=lastGenInfo.source||'';
+      const eng=src.startsWith('google')?'Google':src==='alibaba'?'Alibaba':'Flux';
       const stufe={nano:'Nano',flash:'Flash',pro:'Pro'}[energy]||'';
       card.querySelector('.vbody').insertAdjacentHTML('afterbegin',`<div class="vbadge">${eng} · ${stufe} · ${lastGenInfo.model}</div>`);
     }
@@ -1641,6 +1644,25 @@ async function genGoogle(prompt){
   if(!url) throw new Error('Google: Kein Bild in der Antwort');
   lastGenInfo={source:d.source,model:d.model};
   return url;
+}
+
+// ── Alibaba Qwen/Wan (Frankfurt) via alibaba.js ──
+async function genAlibaba(prompt){
+  const r=await fetch('/api/alibaba',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt,energy,aspect:imgAsp,refImages:activeRefs()})
+  });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(d?.error||'Alibaba Bild Fehler '+r.status);
+  const url=d.images?.[0]?.url;
+  if(!url) throw new Error('Alibaba: Kein Bild in der Antwort');
+  lastGenInfo={source:d.source,model:d.model};
+  return url;
+}
+function genByProv(prompt){
+  if(imgProv==='google') return genGoogle(prompt);
+  if(imgProv==='alibaba') return genAlibaba(prompt);
+  return genFal(prompt);
 }
 
 // ── Google Imagen 4 (bereit wenn Google freigibt) ──
@@ -1721,7 +1743,7 @@ async function applyVEdit(){
   showAI('Bild wird bearbeitet…');
   const newP=orig+'. Modification: '+ep;
   try{
-    let url=imgProv==='google'?await genGoogle(newP):await genFal(newP);
+    let url=await genByProv(newP);
     const img=document.createElement('img'); fitVImg(wrap,img); img.src=url;
     wrap.innerHTML=''; wrap.appendChild(img); curVCard.dataset.url=url;
   }catch(e){wrap.innerHTML=`<div class="vph"><span style="color:var(--rose);font-size:11px">${e.message}</span></div>`}
