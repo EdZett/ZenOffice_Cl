@@ -1551,11 +1551,11 @@ async function enhPrompt(){
     let r='';
     if(true){
       r=await callGemini('gemini-1.5-pro',
-        `Du bist ein Experte für KI-Bildgenerierung. Wandle folgende Beschreibung in einen professionellen englischen Bildprompt um. Behalte ausnahmslos ALLE Details, Stilvorgaben und Wünsche des Nutzers bei (zum Beispiel besonders betonte Gesichtsmerkmale) und lasse nichts weg. Ergänze nur dort, wo nichts vorgegeben ist: Lichtstimmung (goldene Stunde, dramatisch, weich etc.), Komposition, Kamera-Settings (Brennweite, Bokeh), Farbpalette, Atmosphäre, Kunststil (fotorealistisch, Ölgemälde, etc.). Gib NUR den fertigen Prompt zurück:\n\n${inp.value}`,
+        `Du bist ein Experte für KI-Bildgenerierung. Wandle folgende Beschreibung in einen professionellen englischen Bildprompt um. Behalte ausnahmslos ALLE Details, Stilvorgaben und Wünsche des Nutzers bei (zum Beispiel besonders betonte Gesichtsmerkmale) und lasse nichts weg. Ergänze nur dort, wo nichts vorgegeben ist: Lichtstimmung (goldene Stunde, dramatisch, weich etc.), Komposition, Kamera-Settings (Brennweite, Bokeh), Farbpalette, Atmosphäre, Kunststil (fotorealistisch, Ölgemälde, etc.).${activeRefs().length?' WICHTIG: Der Nutzer hat Referenzbild(er) angehängt. Beschreibe KEINE komplett neue Szene, sondern formuliere eine Bearbeitungsanweisung, die sich ausdrücklich auf das angehängte Bild bezieht (beginne mit "Using the attached reference image, ..."). Personen und Hauptmotive aus dem Referenzbild bleiben erhalten und erkennbar. Soll das Bild erweitert werden, beschreibe, was links/rechts/oben/unten ergänzt wird, passend zum Original.':''} Gib NUR den fertigen Prompt zurück:\n\n${inp.value}`,
         {temperature:0.7}
       );
     }
-    if(!r) r=await callClaude('Erstelle professionellen englischen Bild-Prompt. Nur der Prompt:\n\n'+inp.value,'Experte für KI-Bild-Prompts.');
+    if(!r) r=await callClaude('Erstelle professionellen englischen Bild-Prompt.'+(activeRefs().length?' Es ist ein Referenzbild angehängt: formuliere eine Bearbeitungsanweisung, die mit "Using the attached reference image, ..." beginnt und Personen und Hauptmotive des Bildes erhält.':'')+' Nur der Prompt:\n\n'+inp.value,'Experte für KI-Bild-Prompts.');
     inp.value=r;
   }catch(e){alert('Fehler: '+e.message)}
   finally{inp.disabled=false;hideAI()}

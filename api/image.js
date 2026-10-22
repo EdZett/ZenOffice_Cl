@@ -10,6 +10,10 @@ export default async function handler(req, res) {
   const googleKey = process.env.GOOGLE_KEY;
   const falKey = process.env.FAL_KEY;
   const hasRefImages = refImages && Array.isArray(refImages) && refImages.length > 0;
+  // Mit Referenzbildern: Modelle ausdrücklich auf das Bild verpflichten, sonst malen sie oft eine neue Szene
+  const refPrompt = hasRefImages
+    ? 'Use the attached reference image(s) as the base. Keep the people and main subjects from the reference recognizable and unchanged unless the instruction explicitly says otherwise. If the image should be extended, keep the original content and seamlessly add matching scenery around it. Instruction: ' + prompt
+    : prompt;
 
   // Google Gemini Bildmodelle
   const visionModels = {
@@ -67,9 +71,13 @@ export default async function handler(req, res) {
     if (hasRefImages) {
       model = falRefModels[energy] || falRefModels.nano;
       const image_urls = refImages.slice(0, 4);
-      body = model.includes('kontext')
-        ? { prompt, image_urls, num_images: 1, ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}) }
-        : { prompt, image_urls, image_size: image_size || 'auto' };
+      // Ein einzelnes Bild: normale Kontext-Variante statt der experimentellen Mehrbild-Version
+      if (model.includes('kontext') && image_urls.length === 1) {
+        model = 'fal-ai/flux-pro/kontext';
+        body = { prompt: refPrompt, image_url: image_urls[0], num_images: 1, ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}) };
+      } else body = model.includes('kontext')
+        ? { prompt: refPrompt, image_urls, num_images: 1, ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}) }
+        : { prompt: refPrompt, image_urls, image_size: image_size || 'auto' };
     } else {
       model = useFalModel;
       const steps = energy === 'pro' ? 28 : energy === 'flash' ? 28 : 4;
@@ -107,7 +115,7 @@ export default async function handler(req, res) {
   // Google gewählt mit Referenzbildern → Gemini
   if (hasRefImages && googleKey) {
     try {
-      const parts = [{ text: prompt }];
+      const parts = [{ text: refPrompt }];
       refImages.slice(0, 4).forEach(img => {
         const base64 = img.includes(',') ? img.split(',')[1] : img;
         let mime = 'image/jpeg';
