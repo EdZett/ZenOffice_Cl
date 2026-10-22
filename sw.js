@@ -1,5 +1,5 @@
 // ZenOffice Claude Edition – Service Worker
-const CACHE = 'zenoffice-claude-v1';
+const CACHE = 'zenoffice-claude-v2';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
