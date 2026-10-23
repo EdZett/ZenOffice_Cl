@@ -651,7 +651,7 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
 // ═══════════════════════════════════════
 const LANGS=['Deutsch','Englisch','Französisch','Spanisch','Italienisch','Portugiesisch','Niederländisch','Polnisch','Russisch','Ukrainisch','Tschechisch','Slowakisch','Ungarisch','Rumänisch','Bulgarisch','Kroatisch','Serbisch','Slowenisch','Albanisch','Griechisch','Türkisch','Schwedisch','Norwegisch','Dänisch','Finnisch','Estnisch','Lettisch','Litauisch','Isländisch','Irisch','Walisisch','Katalanisch','Galizisch','Baskisch','Maltesisch','Luxemburgisch','Mazedonisch','Bosnisch','Montenegrinisch','Weißrussisch','Georgisch','Armenisch','Aserbaidschanisch','Kasachisch','Usbekisch','Tadschikisch','Sorbisch','Friesisch','Bretagnisch','Okzitanisch','Frankoprovenzalisch','Ladinisch','Rätoromanisch','Jiddisch','Romani','Nordsamisch','Faröisch','Wallonisch','Asturisch','Aragonesisch','Mirandisch','Ladino'];
 
-const CLAUDE={nano:'claude-haiku-4-5-20251001',flash:'claude-sonnet-4-6',pro:'claude-opus-4-7'};
+const CLAUDE={nano:'claude-haiku-5-5',flash:'claude-sonnet-5-5',pro:'claude-opus-5-5'};
 const FAL={nano:'fal-ai/flux/schnell',flash:'fal-ai/flux/dev',pro:'fal-ai/flux-pro/v1.1'};
 const FAL_STEPS={nano:4,flash:25,pro:28};
 const IMG_SIZES={s:{fal:{width:512,height:512},oai:'512x512'},m:{fal:{width:768,height:768},oai:'1024x1024'},l:{fal:{width:1024,height:1024},oai:'1792x1024'}};
@@ -1130,7 +1130,7 @@ async function doTrans(lang){
   const text=ed.innerText.trim();
   if(!text){alert('Bitte zuerst Text schreiben.');return}
   pushUndo();
-  showAI('Gemini 1.5 Pro übersetzt…');
+  showAI('Gemini übersetzt…');
   ed.style.opacity='.4'; ed.contentEditable='false';
   try{
     let result='';

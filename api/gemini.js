@@ -11,16 +11,18 @@ export default async function handler(req, res) {
   const key = process.env.GOOGLE_KEY;
   if (!key) { res.status(500).json({ error: 'GOOGLE_KEY nicht konfiguriert' }); return; }
 
-  // Modellnamen exakt wie in getModelName() aus gemini.ts
+  // Aktuelle Modelle zuerst, danach Ersatz falls ein Name (noch) nicht verfügbar ist
+  const flash = ['gemini-3.6-flash', 'gemini-3-flash-preview'];
+  const lite  = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
   const modelMap = {
-    'pro':     'gemini-3.1-pro-preview',
-    'flash':   'gemini-3-flash-preview',
-    'flash25': 'gemini-3.1-flash-lite-preview',
-    // Fallback-Aliase
-    'gemini-1.5-pro':   'gemini-3-flash-preview',
-    'gemini-1.5-flash': 'gemini-3.1-flash-lite-preview',
+    'pro':     ['gemini-3.1-pro-preview', ...flash],
+    'flash':   flash,
+    'flash25': lite,
+    // Alte Namen, die die App noch verwendet
+    'gemini-1.5-pro':   flash,
+    'gemini-1.5-flash': lite,
   };
-  const selectedModel = modelMap[model] || model || 'gemini-3-flash-preview';
+  const candidates = modelMap[model] || (model ? [model] : flash);
 
   const body = {
     contents: [{ role: 'user', parts: [{ text: prompt }] }]
@@ -29,11 +31,17 @@ export default async function handler(req, res) {
   if (generationConfig) body.generationConfig = generationConfig;
 
   try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${key}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-    );
-    const data = await r.json();
+    let r, data;
+    for (const m of candidates) {
+      r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${key}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      );
+      data = await r.json();
+      const unknown = r.status === 404 || /not found|not supported|no longer available|deprecated/i.test(data?.error?.message || '');
+      if (r.ok || !unknown) break;
+      console.warn('Gemini-Modell nicht verfügbar, nehme Ersatz:', m, data?.error?.message);
+    }
     if (!r.ok) {
       res.status(r.status).json({ error: data?.error?.message || 'Gemini Fehler' });
       return;
