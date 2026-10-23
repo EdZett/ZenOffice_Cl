@@ -656,6 +656,7 @@ let refImages=[]; // Referenzbilder für Vision
 let speaking=false, ttsAudio=null;
 let dictating=false, recognition=null, dicTimer=null;
 let curVCard=null;
+let vRunning=0; // Anzahl gleichzeitig laufender Bilderstellungen
 let undoStack=[], undoPtr=-1;
 
 // ═══════════════════════════════════════
@@ -1574,7 +1575,8 @@ async function genImg(){
   area.prepend(card); curVCard=card;
   card.querySelector('.vimg').style.aspectRatio=imgAsp.replace(':','/');
   card.scrollIntoView({behavior:'smooth',block:'start'});
-  showAI('Bild wird generiert…');
+  const stufe={nano:'Nano',flash:'Flash',pro:'Pro'}[energy]||''; // Stufe beim Klick merken, nicht beim Fertigwerden
+  vRunning++; showAI(vRunning>1?vRunning+' Bilder werden generiert…':'Bild wird generiert…');
   try{
     let url=null;
     // Google oder Flux je nach Umschalter
@@ -1590,7 +1592,6 @@ async function genImg(){
     if(lastGenInfo&&lastGenInfo.model){
       const src=lastGenInfo.source||'';
       const eng=src.startsWith('google')?'Google':src==='alibaba'?'Alibaba':'Flux';
-      const stufe={nano:'Nano',flash:'Flash',pro:'Pro'}[energy]||'';
       card.querySelector('.vbody').insertAdjacentHTML('afterbegin',`<div class="vbadge">${eng} · ${stufe} · ${lastGenInfo.model}</div>`);
     }
     addVBtns(card);
@@ -1598,7 +1599,10 @@ async function genImg(){
   }catch(e){
     card.querySelector('.vimg').innerHTML=`<div class="vph"><span style="color:var(--rose);font-size:11px;padding:12px">${e.message}</span></div>`;
   }
-  finally{hideAI()}
+  finally{
+    vRunning--;
+    if(vRunning>0) showAI(vRunning>1?vRunning+' Bilder werden generiert…':'Bild wird generiert…'); else hideAI();
+  }
 }
 
 // ── fal.ai Flux – Nano/Flash/Pro ──
