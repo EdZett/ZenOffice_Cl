@@ -464,9 +464,7 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
         <select class="tsel" id="voicesel" title="Stimme zum Vorlesen" onchange="setVoice(this.value)">
           <option value="g38l">Sulafat 3.8 Lite</option>
           <option value="g38">Kore 3.8</option>
-          <option value="g31">Kore 3.1</option>
-          <option value="elm">ElevenLabs George ♂</option>
-          <option value="el">ElevenLabs Matilda</option>
+          <option value="elm">ElevenLabs Brian ♂</option>
         </select>
         <a class="tbb" id="audio-dl" style="display:none;text-decoration:none" title="Audio herunterladen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Audio ↓</a>
         <div class="tsep"></div>
@@ -938,6 +936,7 @@ const STOP_SVG='<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:cu
 // Gewählte Vorlese-Stimme (wird im Browser gemerkt)
 let ttsVoice='g38l';
 try{ttsVoice=localStorage.getItem('zo_voice')||'g38l'}catch(e){}
+if(!['g38l','g38','elm'].includes(ttsVoice)) ttsVoice='g38l'; // früher gewählte, inzwischen entfernte Stimmen
 function setVoice(v){ttsVoice=v;try{localStorage.setItem('zo_voice',v)}catch(e){}}
 document.addEventListener('DOMContentLoaded',()=>{const s=document.getElementById('voicesel');if(s)s.value=ttsVoice});
 

@@ -18,8 +18,7 @@ export default async function handler(req, res) {
     g31:  { type: 'google', model: 'gemini-3.1-flash-tts-preview', voiceName: 'Kore',    label: 'Google 3.1 · Kore' },
     g38:  { type: 'google', model: 'gemini-3.8-flash-tts',         voiceName: 'Kore',    label: 'Google 3.8 · Kore' },
     g38l: { type: 'google', model: 'gemini-3.8-flash-lite-tts',    voiceName: 'Sulafat', label: 'Google 3.8 Lite · Sulafat' },
-    el:   { type: 'eleven', model: 'fal-ai/elevenlabs/tts/turbo-v2.5', voiceName: 'Matilda', label: 'ElevenLabs · Matilda' },
-    elm:  { type: 'eleven', model: 'fal-ai/elevenlabs/tts/turbo-v2.5', voiceName: 'George',  label: 'ElevenLabs · George' },
+    elm:  { type: 'eleven', model: 'fal-ai/elevenlabs/tts/turbo-v2.5', voiceName: 'Brian',   label: 'ElevenLabs · Brian' },
   };
   // Gewählte Stimme zuerst, dann Ersatz in der Reihenfolge der Lieblingsstimmen
   const order = [voice, 'g38l', 'g38', 'g31', 'elm'].filter((v, i, a) => voices[v] && a.indexOf(v) === i);
