@@ -15,11 +15,11 @@ export default async function handler(req, res) {
     ? 'Use the attached reference image(s) as the base. Keep the people and main subjects from the reference recognizable and unchanged unless the instruction explicitly says otherwise. If the image should be extended, keep the original content and seamlessly add matching scenery around it. Instruction: ' + prompt
     : prompt;
 
-  // Google Gemini Bildmodelle
+  // Google Gemini Bildmodelle – erster Name ist der aktuelle, danach Ersatz falls (noch) nicht verfügbar
   const visionModels = {
-    nano:  'gemini-2.5-flash-image',
-    flash: 'gemini-3.1-flash-image-preview',
-    pro:   'gemini-3-pro-image-preview',
+    nano:  ['gemini-3.1-flash-lite-image', 'gemini-2.5-flash-image'],
+    flash: ['gemini-nano-banana-2.1', 'gemini-3.1-flash-image', 'gemini-3.1-flash-image-preview'],
+    pro:   ['gemini-3-pro-image', 'gemini-3-pro-image-preview'],
   };
 
   // fal.ai Flux Modelle
@@ -36,12 +36,27 @@ export default async function handler(req, res) {
     pro:   'fal-ai/flux-2-pro/edit',
   };
 
-  const visionModel = visionModels[energy] || visionModels.flash;
+  const visionCandidates = visionModels[energy] || visionModels.flash;
+  let visionModel = visionCandidates[0];
   const validAspects = ['1:1','16:9','9:16','3:2','4:3','2:3','3:4'];
   const aspectRatio = validAspects.includes(aspect) ? aspect : null;
 
-  // Gemini-Bildaufruf: erst mit Seitenverhältnis, bei Ablehnung ohne
+  // Gemini-Bildaufruf: unbekannte Modellnamen überspringen und den nächsten Ersatz nehmen
   async function callGeminiImage(parts) {
+    let result;
+    for (const m of visionCandidates) {
+      visionModel = m;
+      result = await callGeminiModel(parts);
+      const msg = result.data?.error?.message || '';
+      const unknown = result.r.status === 404 || /not found|not supported|is not available|no longer available|deprecated/i.test(msg);
+      if (result.r.ok || !unknown) return result;
+      console.warn('Gemini-Modell nicht verfügbar, nehme Ersatz:', m, msg);
+    }
+    return result;
+  }
+
+  // Ein Modell aufrufen: erst mit Seitenverhältnis, bei Ablehnung ohne
+  async function callGeminiModel(parts) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${visionModel}:generateContent?key=${googleKey}`;
     const make = (withAspect) => ({
       method: 'POST',

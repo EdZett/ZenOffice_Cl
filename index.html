@@ -580,16 +580,19 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
       </div>
       <div class="sg">
         <div class="sgl">Bildgenerator-Quelle</div>
-        <div class="sgd">Wähle für alle Stufen (Nano, Flash, Pro) zwischen Flux und Google Gemini:</div>
+        <div class="sgd">Wähle für alle Stufen (Nano, Flash, Pro) zwischen Flux, Google Gemini und Alibaba:</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
           <button class="bgh on-prov" id="prov-fal" onclick="setProv('fal')" style="font-size:12px">⚡ fal.ai Flux</button>
           <button class="bgh" id="prov-google" onclick="setProv('google')" style="font-size:12px">🌐 Google Gemini</button>
+          <button class="bgh" id="prov-alibaba" onclick="setProv('alibaba')" style="font-size:12px">🏮 Alibaba</button>
         </div>
         <div style="margin-top:10px;font-size:11px;color:var(--text2);background:var(--bg3);padding:10px;border-radius:8px;border:1px solid var(--border);line-height:1.9">
           <strong style="color:var(--gold)">⚡ fal.ai Flux:</strong><br>
-          Nano → flux/schnell &nbsp;·&nbsp; Flash → flux-pro/v1.1 &nbsp;·&nbsp; Pro → flux-2-pro<br><br>
+          Nano → flux/schnell &nbsp;·&nbsp; Flash → flux/dev &nbsp;·&nbsp; Pro → flux-pro/v1.1<br><br>
           <strong style="color:var(--gold)">🌐 Google Gemini:</strong><br>
-          Nano → gemini-2.5-flash-image &nbsp;·&nbsp; Flash → gemini-3.1-flash-image-preview &nbsp;·&nbsp; Pro → gemini-3-pro-image-preview
+          Nano → gemini-3.1-flash-lite-image &nbsp;·&nbsp; Flash → gemini-nano-banana-2.1 &nbsp;·&nbsp; Pro → gemini-3-pro-image<br><br>
+          <strong style="color:var(--gold)">🏮 Alibaba:</strong><br>
+          Nano → qwen-image-2.1-turbo &nbsp;·&nbsp; Flash → wan2.6-t2i &nbsp;·&nbsp; Pro → qwen-image-3.0-pro
         </div>
       </div>
       <div class="info-box">🔒 Alle Schlüssel werden nur lokal in deinem Browser gespeichert. Sie verlassen deinen Computer nur für direkte API-Anfragen. Setze in jeder API-Console ein monatliches Ausgabelimit.</div>
@@ -704,7 +707,7 @@ function setProv(p){
 }
 function updProvBtns(){
   document.querySelectorAll('.on-prov').forEach(b=>b.classList.remove('on-prov'));
-  const id = (imgProv==='google'||imgProv==='imagen4')?'prov-google':'prov-fal';
+  const id = (imgProv==='google'||imgProv==='imagen4')?'prov-google':imgProv==='alibaba'?'prov-alibaba':'prov-fal';
   const btn=document.getElementById(id);
   if(btn) btn.classList.add('on-prov');
 }
