@@ -101,13 +101,18 @@ export default async function handler(req, res) {
       res.status(200).json({ pending: true, status: data.output.task_status, taskId: newTask, model });
       return;
     }
-    console.warn('Alibaba-Auftrag nicht möglich, versuche direkt:', errMsg(data));
+    const asyncErr = errMsg(data);
+    console.warn('Alibaba-Auftrag nicht möglich, versuche direkt:', asyncErr);
 
-    // Rückfall: direkter Aufruf
-    r = await fetch(`${base}/services/aigc/multimodal-generation/generation`, { method: 'POST', headers, body });
+    // Rückfall: direkter Aufruf. Qwen 3.x denkt standardmäßig vor dem Malen nach – das sprengt
+    // die 60-Sekunden-Grenze, daher hier ohne Nachdenk-Schritt
+    const syncBody = model.startsWith('qwen-image-3.0')
+      ? JSON.stringify({ ...JSON.parse(body), parameters: { ...JSON.parse(body).parameters, enable_thinking: false } })
+      : body;
+    r = await fetch(`${base}/services/aigc/multimodal-generation/generation`, { method: 'POST', headers, body: syncBody });
     data = await r.json();
     const url = r.ok ? imageOf(data) : null;
-    if (!url) throw new Error(errMsg(data));
+    if (!url) throw new Error(errMsg(data) + ' (Auftragsweg: ' + asyncErr + ')');
     await sendImage(url, model);
   } catch (e) {
     res.status(500).json({ error: 'Alibaba (' + model + '): ' + e.message });
