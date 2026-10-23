@@ -4,14 +4,54 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  const { prompt, energy, aspect, refImages } = req.body;
-  if (!prompt) { res.status(400).json({ error: 'prompt required' }); return; }
+  const { prompt, energy, aspect, refImages, taskId, model: taskModel } = req.body;
 
   const apiKey = process.env.ALIBABA_KEY;
   if (!apiKey) { res.status(500).json({ error: 'Alibaba-Schlüssel fehlt (ALIBABA_KEY in Vercel eintragen)' }); return; }
 
   // Arbeitsbereich Frankfurt (DashScope EU-Central)
   const base = process.env.ALIBABA_BASE_URL || 'https://ws-cbf9073m7wec0cdo.eu-central-1.maas.aliyuncs.com/api/v1';
+  const headers = { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
+  const errMsg = d => d?.message || d?.code || 'unbekannter Fehler';
+  const imageOf = d => d?.output?.choices?.[0]?.message?.content?.find(c => c.image)?.image || d?.output?.results?.[0]?.url;
+
+  // Alibaba-Links verfallen nach 24 Stunden → Bild direkt mitliefern, solange es ins Antwortlimit passt
+  async function sendImage(url, model) {
+    let out = url;
+    try {
+      const img = await fetch(url);
+      const buf = Buffer.from(await img.arrayBuffer());
+      if (img.ok && buf.length < 3_000_000) {
+        out = `data:${img.headers.get('content-type') || 'image/png'};base64,${buf.toString('base64')}`;
+      }
+    } catch (e) {
+      console.warn('Alibaba-Bild nicht eingebettet:', e.message);
+    }
+    res.status(200).json({ images: [{ url: out }], source: 'alibaba', model });
+  }
+
+  // Abholen: der Browser fragt mit der Auftragsnummer nach, bis das Bild fertig ist
+  if (taskId) {
+    try {
+      const t = await fetch(`${base}/tasks/${encodeURIComponent(taskId)}`, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+      const data = await t.json();
+      const status = data?.output?.task_status;
+      if (status === 'SUCCEEDED') {
+        const url = imageOf(data);
+        if (!url) throw new Error('Kein Bild im fertigen Auftrag');
+        await sendImage(url, taskModel);
+      } else if (!t.ok || ['FAILED', 'CANCELED', 'UNKNOWN'].includes(status)) {
+        throw new Error(errMsg(data.output || data));
+      } else {
+        res.status(200).json({ pending: true, status, taskId, model: taskModel });
+      }
+    } catch (e) {
+      res.status(500).json({ error: 'Alibaba (' + (taskModel || '?') + '): ' + e.message });
+    }
+    return;
+  }
+
+  if (!prompt) { res.status(400).json({ error: 'prompt required' }); return; }
   const hasRefImages = Array.isArray(refImages) && refImages.length > 0;
 
   // Raster Nano/Flash/Pro – alle Modelle in Frankfurt verfügbar
@@ -49,47 +89,26 @@ export default async function handler(req, res) {
     input: { messages: [{ role: 'user', content }] },
     parameters: { size, n: 1, watermark: false, prompt_extend: true }
   });
-  const headers = { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
-  const errMsg = d => d?.message || d?.code || 'unbekannter Fehler';
-  const imageOf = d => d?.output?.choices?.[0]?.message?.content?.find(c => c.image)?.image;
 
   try {
-    let r = await fetch(`${base}/services/aigc/multimodal-generation/generation`, { method: 'POST', headers, body });
+    // Zuerst als Auftrag anlegen: kein Warten im Server, damit langsame Modelle (Pro) nicht in die Zeitgrenze laufen
+    let r = await fetch(`${base}/services/aigc/image-generation/generation`, {
+      method: 'POST', headers: { ...headers, 'X-DashScope-Async': 'enable' }, body
+    });
     let data = await r.json();
-    let url = r.ok ? imageOf(data) : null;
-
-    // Manche Modelle laufen in Frankfurt nur asynchron: Auftrag anlegen und Ergebnis abholen
-    if (!url && /async|synchron/i.test(errMsg(data))) {
-      r = await fetch(`${base}/services/aigc/image-generation/generation`, {
-        method: 'POST', headers: { ...headers, 'X-DashScope-Async': 'enable' }, body
-      });
-      data = await r.json();
-      const taskId = data?.output?.task_id;
-      if (!r.ok || !taskId) throw new Error(errMsg(data));
-      for (let i = 0; i < 25 && !url; i++) {
-        await new Promise(ok => setTimeout(ok, 2000));
-        const t = await fetch(`${base}/tasks/${taskId}`, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-        data = await t.json();
-        const status = data?.output?.task_status;
-        if (status === 'FAILED' || status === 'CANCELED') throw new Error(errMsg(data.output || data));
-        if (status === 'SUCCEEDED') url = imageOf(data) || data?.output?.results?.[0]?.url;
-      }
-      if (!url) throw new Error('Zeitüberschreitung beim Warten auf das Bild');
+    const newTask = data?.output?.task_id;
+    if (r.ok && newTask) {
+      res.status(200).json({ pending: true, status: data.output.task_status, taskId: newTask, model });
+      return;
     }
+    console.warn('Alibaba-Auftrag nicht möglich, versuche direkt:', errMsg(data));
+
+    // Rückfall: direkter Aufruf
+    r = await fetch(`${base}/services/aigc/multimodal-generation/generation`, { method: 'POST', headers, body });
+    data = await r.json();
+    const url = r.ok ? imageOf(data) : null;
     if (!url) throw new Error(errMsg(data));
-
-    // Alibaba-Links verfallen nach 24 Stunden → Bild direkt mitliefern, solange es ins Antwortlimit passt
-    let out = url;
-    try {
-      const img = await fetch(url);
-      const buf = Buffer.from(await img.arrayBuffer());
-      if (img.ok && buf.length < 3_000_000) {
-        out = `data:${img.headers.get('content-type') || 'image/png'};base64,${buf.toString('base64')}`;
-      }
-    } catch (e) {
-      console.warn('Alibaba-Bild nicht eingebettet:', e.message);
-    }
-    res.status(200).json({ images: [{ url: out }], source: 'alibaba', model });
+    await sendImage(url, model);
   } catch (e) {
     res.status(500).json({ error: 'Alibaba (' + model + '): ' + e.message });
   }

@@ -1648,12 +1648,19 @@ async function genGoogle(prompt){
 
 // ── Alibaba Qwen/Wan (Frankfurt) via alibaba.js ──
 async function genAlibaba(prompt){
-  const r=await fetch('/api/alibaba',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt,energy,aspect:imgAsp,refImages:activeRefs()})
-  });
-  const d=await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error(d?.error||'Alibaba Bild Fehler '+r.status);
+  const post=async b=>{
+    const r=await fetch('/api/alibaba',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d?.error||'Alibaba Bild Fehler '+r.status);
+    return d;
+  };
+  let d=await post({prompt,energy,aspect:imgAsp,refImages:activeRefs()});
+  // Auftrag läuft bei Alibaba: alle 3 Sekunden nachfragen (bis zu 5 Minuten)
+  for(let i=0;d.pending&&i<100;i++){
+    await new Promise(ok=>setTimeout(ok,3000));
+    d=await post({taskId:d.taskId,model:d.model});
+  }
+  if(d.pending) throw new Error('Alibaba: Bild nach 5 Minuten noch nicht fertig');
   const url=d.images?.[0]?.url;
   if(!url) throw new Error('Alibaba: Kein Bild in der Antwort');
   lastGenInfo={source:d.source,model:d.model};
