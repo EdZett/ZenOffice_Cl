@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  const { prompt, energy, aspect, refImages, taskId, model: taskModel } = req.body;
+  const { prompt = '', energy, aspect, refImages, taskId, model: taskModel, editMode, maskImage } = req.body;
 
   const apiKey = process.env.ALIBABA_KEY;
   if (!apiKey) { res.status(500).json({ error: 'Alibaba-Schlüssel fehlt (ALIBABA_KEY in Vercel eintragen)' }); return; }
@@ -51,7 +51,8 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (!prompt) { res.status(400).json({ error: 'prompt required' }); return; }
+  if (!prompt && editMode !== 'erase' && editMode !== 'expand') { res.status(400).json({ error: 'prompt required' }); return; }
+  const hasMask = typeof maskImage === 'string' && maskImage.startsWith('data:');
   const hasRefImages = Array.isArray(refImages) && refImages.length > 0;
 
   // Raster Nano/Flash/Pro – alle Modelle in Frankfurt verfügbar
@@ -74,12 +75,21 @@ export default async function handler(req, res) {
   const r16 = v => Math.round(v / 16) * 16;
   const size = `${r16(Math.sqrt(area * aw / ah))}*${r16(Math.sqrt(area * ah / aw))}`;
 
-  const text = hasRefImages
+  // Bearbeiten eines vorhandenen Bildes: nur das Verlangte ändern (Maske = zweites Bild, weiß markiert)
+  const editPrompts = {
+    edit:   'Edit the attached image. Change ONLY what the instruction asks for. Keep everything else identical: composition, framing, pose, face and identity, clothing, lighting, colors, painting style and background. Do not add other images, insets, borders or text. Instruction: ',
+    mask:   'Edit the first attached image only inside the region marked white in the second image (the mask). Leave everything outside the marked region exactly unchanged. Instruction for the marked region: ',
+    erase:  'Remove whatever lies in the region marked white in the second image (the mask) from the first image and fill that region naturally with the surrounding background, so no trace remains. Keep everything else exactly unchanged. ',
+    expand: 'The first attached image has empty border areas, marked white in the second image (the mask). Fill them by seamlessly continuing the scene with matching style, lighting and perspective. Keep the original central content exactly unchanged. ',
+  };
+  const text = hasRefImages && editPrompts[editMode] ? editPrompts[editMode] + prompt
+    : hasRefImages
     ? 'Use the attached reference image(s) as the base. Keep the people and main subjects from the reference recognizable and unchanged unless the instruction explicitly says otherwise. If the image should be extended, keep the original content and seamlessly add matching scenery around it. Instruction: ' + prompt
     : prompt;
   const maxRefs = model.startsWith('qwen-image-3.0') ? 3 : 4;
   const content = [
-    ...(hasRefImages ? refImages.slice(0, maxRefs).map(image => ({ image })) : []),
+    ...(hasRefImages ? refImages.slice(0, hasMask ? 1 : maxRefs).map(image => ({ image })) : []),
+    ...(hasRefImages && hasMask ? [{ image: maskImage }] : []),
     { text }
   ];
 

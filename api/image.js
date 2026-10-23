@@ -4,15 +4,27 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  const { prompt, energy, model: falModel, image_size, num_inference_steps, refImages, aspect, useGoogle } = req.body;
-  if (!prompt) { res.status(400).json({ error: 'prompt required' }); return; }
+  const { prompt = '', energy, model: falModel, image_size, num_inference_steps, refImages, aspect, useGoogle, editMode, maskImage } = req.body;
+  // Radieren und Erweitern kommen auch ohne eigene Anweisung aus
+  if (!prompt && editMode !== 'erase' && editMode !== 'expand') { res.status(400).json({ error: 'prompt required' }); return; }
 
   const googleKey = process.env.GOOGLE_KEY;
   const falKey = process.env.FAL_KEY;
   const hasRefImages = refImages && Array.isArray(refImages) && refImages.length > 0;
+  const hasMask = typeof maskImage === 'string' && maskImage.startsWith('data:');
   // Mit Referenzbildern: Modelle ausdrücklich auf das Bild verpflichten, sonst malen sie oft eine neue Szene
-  const refPrompt = hasRefImages
-    ? 'Use the attached reference image(s) as the base. Keep the people and main subjects from the reference recognizable and unchanged unless the instruction explicitly says otherwise. If the image should be extended, keep the original content and seamlessly add matching scenery around it. Instruction: ' + prompt
+  const editPrompts = {
+    edit:   'Edit the attached image. Change ONLY what the instruction asks for. Keep everything else identical: composition, framing, pose, face and identity, clothing, lighting, colors, painting style and background. Do not add other images, insets, borders or text. Instruction: ',
+    mask:   'Edit the first attached image only inside the region marked white in the second image (the mask). Leave everything outside the marked region exactly unchanged. Instruction for the marked region: ',
+    erase:  'Remove whatever lies in the region marked white in the second image (the mask) from the first image and fill that region naturally with the surrounding background, so no trace remains. Keep everything else exactly unchanged. ',
+    expand: 'The first attached image has empty border areas, marked white in the second image (the mask). Fill them by seamlessly continuing the scene with matching style, lighting and perspective. Keep the original central content exactly unchanged. ',
+  };
+  const refPrompt = !hasRefImages ? prompt
+    : editPrompts[editMode] ? editPrompts[editMode] + prompt
+    : 'Use the attached reference image(s) as the base. Keep the people and main subjects from the reference recognizable and unchanged unless the instruction explicitly says otherwise. If the image should be extended, keep the original content and seamlessly add matching scenery around it. Instruction: ' + prompt;
+  // Für das Flux-Füllmodell: nur beschreiben, was im markierten Bereich entstehen soll
+  const fillPrompt = editMode === 'erase' ? 'clean, natural background that seamlessly matches the surroundings' + (prompt ? '. ' + prompt : '')
+    : editMode === 'expand' ? 'seamless natural continuation of the scene, same style, lighting and perspective' + (prompt ? '. ' + prompt : '')
     : prompt;
 
   // Google Gemini Bildmodelle – erster Name ist der aktuelle, danach Ersatz falls (noch) nicht verfügbar
@@ -83,7 +95,11 @@ export default async function handler(req, res) {
   // fal.ai-Aufruf: ohne Referenzbilder Text-zu-Bild, mit Referenzbildern Kontext/Edit
   async function callFal() {
     let model, body;
-    if (hasRefImages) {
+    if (hasRefImages && hasMask) {
+      // Echtes Bereichs-Füllen: nur der weiße Teil der Maske wird neu gemalt
+      model = 'fal-ai/flux-pro/v1/fill';
+      body = { prompt: fillPrompt, image_url: refImages[0], mask_url: maskImage, num_images: 1, output_format: 'png' };
+    } else if (hasRefImages) {
       model = falRefModels[energy] || falRefModels.nano;
       const image_urls = refImages.slice(0, 4);
       // Ein einzelnes Bild: normale Kontext-Variante statt der experimentellen Mehrbild-Version
@@ -138,6 +154,7 @@ export default async function handler(req, res) {
         else if (img.startsWith('data:image/webp')) mime = 'image/webp';
         parts.push({ inlineData: { data: base64, mimeType: mime } });
       });
+      if (hasMask) parts.push({ inlineData: { data: maskImage.split(',')[1], mimeType: 'image/png' } });
 
       console.log('Referenzbilder:', refImages.length, '→ Google', visionModel);
 
