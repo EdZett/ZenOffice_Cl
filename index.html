@@ -1665,6 +1665,7 @@ async function genImg(){
 }
 
 // ── fal.ai Flux – Nano/Flash/Pro ──
+const TOO_BIG='Die Bilder sind zu groß zum Senden (Fehler 413). Bitte das Referenzbild entfernen und neu hochladen – es wird dann automatisch verkleinert.';
 // opt (beim Bearbeiten): refs = das zu bearbeitende Bild, mode = edit|mask|erase|expand, mask = Maske, aspect = Format
 function editFields(opt){
   return {refImages:opt.refs||activeRefs(), aspect:opt.aspect||imgAsp, ...(opt.mode?{editMode:opt.mode}:{}), ...(opt.mask?{maskImage:opt.mask}:{})};
@@ -1687,7 +1688,7 @@ async function genFal(prompt,opt={}){
   });
   if(!r.ok){
     const e=await r.json().catch(()=>({}));
-    throw new Error(e?.error||'Bild Fehler HTTP '+r.status);
+    throw new Error(r.status===413?TOO_BIG:e?.error||'Bild Fehler HTTP '+r.status);
   }
   const d=await r.json();
   const url=d.images?.[0]?.url||d.image?.url;
@@ -1704,7 +1705,7 @@ async function genGoogle(prompt,opt={}){
   });
   if(!r.ok){
     const e=await r.json().catch(()=>({}));
-    throw new Error(e?.error||'Google Bild Fehler '+r.status);
+    throw new Error(r.status===413?TOO_BIG:e?.error||'Google Bild Fehler '+r.status);
   }
   const d=await r.json();
   const url=d.images?.[0]?.url;
@@ -1719,7 +1720,7 @@ async function genAlibaba(prompt,opt={}){
     const r=await fetch('/api/alibaba',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
     const d=await r.json().catch(()=>({}));
     if(r.status===504) throw new Error('Alibaba: Zeitgrenze überschritten (504) beim '+(b.taskId?'Nachfragen':'Auftrag anlegen'));
-    if(!r.ok) throw new Error(d?.error||'Alibaba Bild Fehler '+r.status);
+    if(!r.ok) throw new Error(r.status===413?TOO_BIG:d?.error||'Alibaba Bild Fehler '+r.status);
     return d;
   };
   let d=await post({prompt,energy,...editFields(opt)});
@@ -2050,8 +2051,10 @@ function handleVisionDrop(e){
   if(!files.length) return;
   files.forEach(file=>{
     const r=new FileReader();
-    r.onload=ev=>{
-      refImages.push({data:ev.target.result,name:file.name.replace(/\.[^.]+$/,'')});
+    r.onload=async ev=>{
+      // Referenzbilder verkleinern, sonst sprengen große Fotos das Anfragelimit (Fehler 413)
+      let data=ev.target.result; try{data=(await shrinkImg(data,1536)).url}catch(e){}
+      refImages.push({data,name:file.name.replace(/\.[^.]+$/,'')});
       renderRefImages();
     };
     r.readAsDataURL(file);
@@ -2061,8 +2064,9 @@ function handleRef(e){
   const files=Array.from(e.target.files); if(!files.length) return;
   files.forEach(file=>{
     const r=new FileReader();
-    r.onload=ev=>{
-      refImages.push({data:ev.target.result,name:file.name.replace(/\.[^.]+$/,'')});
+    r.onload=async ev=>{
+      let data=ev.target.result; try{data=(await shrinkImg(data,1536)).url}catch(e){}
+      refImages.push({data,name:file.name.replace(/\.[^.]+$/,'')});
       renderRefImages();
     };
     r.readAsDataURL(file);
