@@ -1947,6 +1947,18 @@ async function buildExpand(){
   mx.fillStyle='#fff';mx.fillRect(0,0,W,H); const inset=8; mx.fillStyle='#000';mx.fillRect(ox+inset,oy+inset,iw-2*inset,ih-2*inset);
   return {url:c.toDataURL('image/jpeg',0.92),mask:m,W,H};
 }
+// Bildmodelle setzen vage, deutsche Wünsche oft kaum um – Claude macht daraus eine konkrete englische Anweisung
+async function toEditInstruction(txt,mode){
+  const what={edit:'Änderung am ganzen Bild',mask:'Änderung im markierten Bereich',erase:'Entfernen eines Objekts',expand:'Erweitern des Bildes an den Rändern'}[mode];
+  try{
+    const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      model:CLAUDE.nano,max_tokens:300,
+      system:'You turn a user\'s image-editing request (usually German) into one precise English instruction for an AI image model. Make the requested change concrete and clearly visible, e.g. "noticeably slimmer, more feminine arms: slender upper arms and forearms, narrow wrists, soft contours". Describe only the change, not the rest of the image. Reply with the instruction only: no quotes, no preamble, at most 60 words.',
+      messages:[{role:'user',content:`Art der Bearbeitung: ${what}\nWunsch: ${txt}`}]})});
+    const d=await r.json(); const t=(d.content||[]).map(c=>c.text||'').join('').trim();
+    return r.ok&&t?t:txt;
+  }catch(e){return txt}
+}
 async function vtRun(){
   if(!VT.card||!VT.base) return;
   const mode=VT.mode, txt=document.getElementById('vt-inp').value.trim();
@@ -1967,7 +1979,9 @@ async function vtRun(){
   const stufe={nano:'Nano',flash:'Flash',pro:'Pro'}[energy]||'';
   vRunning++; showAI('Bild wird bearbeitet…');
   try{
-    let url=await genByProv(txt,{refs:[base],mode,mask:maskCv?maskCv.toDataURL('image/png'):undefined,aspect:asp});
+    const instr=txt?await toEditInstruction(txt,mode):'';
+    if(instr&&instr!==txt){const p=document.createElement('div');p.className='vpt';p.style.opacity='.65';p.textContent='→ '+instr;card.querySelector('.vpt').after(p)}
+    let url=await genByProv(instr,{refs:[base],mode,mask:maskCv?maskCv.toDataURL('image/png'):undefined,aspect:asp});
     if(maskCv&&(mode==='expand'||blend)){try{url=await blendWithMask(base,url,maskCv,mode==='expand'?10:6)}catch(e){console.warn('Verschmelzen nicht möglich:',e.message)}}
     const wrap=card.querySelector('.vimg'), img=document.createElement('img'); fitVImg(wrap,img); img.src=url;
     wrap.innerHTML=''; wrap.appendChild(img);

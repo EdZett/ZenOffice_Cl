@@ -14,14 +14,14 @@ export default async function handler(req, res) {
   const hasMask = typeof maskImage === 'string' && maskImage.startsWith('data:');
   // Mit Referenzbildern: Modelle ausdrücklich auf das Bild verpflichten, sonst malen sie oft eine neue Szene
   const editPrompts = {
-    edit:   'Edit the attached image. Change ONLY what the instruction asks for. Keep everything else identical: composition, framing, pose, face and identity, clothing, lighting, colors, painting style and background. Do not add other images, insets, borders or text. Instruction: ',
-    mask:   'Edit the first attached image only inside the region marked white in the second image (the mask). Leave everything outside the marked region exactly unchanged. Instruction for the marked region: ',
+    edit:   'Edit the attached image. Apply the requested change clearly and visibly – the result must look noticeably different in exactly that respect; a nearly identical image is a failure. Everything the change does not concern stays as it is (composition, framing, face and identity, lighting, colors, painting style, background). Do not add other images, insets, borders or text. Requested change: ',
+    mask:   'The second attached image is a mask: its white area marks a region of the first image. Apply the requested change clearly and visibly in that region – the result must look noticeably different there; a nearly identical region is a failure. Keep everything outside the marked region unchanged. Requested change: ',
     erase:  'Remove whatever lies in the region marked white in the second image (the mask) from the first image and fill that region naturally with the surrounding background, so no trace remains. Keep everything else exactly unchanged. ',
     expand: 'The first attached image has empty border areas, marked white in the second image (the mask). Fill them by seamlessly continuing the scene with matching style, lighting and perspective. Keep the original central content exactly unchanged. ',
   };
   const refPrompt = !hasRefImages ? prompt
     : editPrompts[editMode] ? editPrompts[editMode] + prompt
-    : 'Use the attached reference image(s) as the base. Keep the people and main subjects from the reference recognizable and unchanged unless the instruction explicitly says otherwise. If the image should be extended, keep the original content and seamlessly add matching scenery around it. Instruction: ' + prompt;
+    : 'Use the attached reference image(s) for the identity of the person (face, hair) and for the overall style. Follow the instruction below exactly: wherever it asks for something different from the reference (pose, body shape, clothing, setting, mood …), apply it clearly, even if the result then differs from the reference. Do not simply copy the reference. Instruction: ' + prompt;
   // Für das Flux-Füllmodell: nur beschreiben, was im markierten Bereich entstehen soll
   const fillPrompt = editMode === 'erase' ? 'clean, natural background that seamlessly matches the surroundings' + (prompt ? '. ' + prompt : '')
     : editMode === 'expand' ? 'seamless natural continuation of the scene, same style, lighting and perspective' + (prompt ? '. ' + prompt : '')
