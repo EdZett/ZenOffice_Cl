@@ -295,6 +295,15 @@ body.light .tbb.zen-hear{background:rgba(80,140,80,.12);color:#3a7a50;border-col
 .vact-row{display:flex;gap:10px;align-items:stretch}
 .vib{width:52px;min-height:52px;flex-shrink:0;border:none;border-radius:16px;background:var(--bg3);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .vib:hover{background:var(--bg4)}
+.vib:disabled{opacity:.35;cursor:default;background:var(--bg3)}
+/* Solange noch kein Bild da ist: Hinweis kompakt, damit alles auf einen Handybildschirm passt */
+@media(max-width:420px){.vgo svg{display:none}}
+#varea:has(>.empty){min-height:0;padding-bottom:0}
+#varea>.empty{padding:14px 16px 6px}
+#varea>.empty svg{width:26px;height:26px;margin-bottom:6px}
+#varea>.empty p{font-size:12px;line-height:1.5}
+/* Bildprogramm und Qualitätsstufe: Beschriftung füllt die Schalter fast ganz aus */
+.prov3 .vseg-b,#vq .vseg-b{min-height:54px;font-size:clamp(15px,4.4vw,21px);letter-spacing:.01em;padding:6px 4px;white-space:nowrap}
 .vib svg{width:22px;height:22px;stroke:var(--rose);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .vgo{flex:1;min-height:52px;border:none;border-radius:16px;background:var(--rose);color:#fff;font-family:var(--fn);font-size:14px;font-weight:700;letter-spacing:.14em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 18px rgba(196,132,122,.35);transition:all .15s}
 .vgo:hover{filter:brightness(1.07)}.vgo:active{transform:scale(.98)}
@@ -352,6 +361,20 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
   .tbr{display:flex;align-items:center;gap:4px}
   .tbr>*{flex-shrink:0}
   .tbr>.tsep:first-child{display:none}
+  /* Vision-Knopfreihe: fünf Symbolknöpfe plus Erstellen auf einer Zeile */
+  .vact-row{gap:6px}
+  .vib{width:44px;min-height:48px;border-radius:14px}
+  .vib svg{width:20px;height:20px}
+  .vgo{min-height:48px;font-size:12px;letter-spacing:.06em;gap:6px;padding:0 6px;min-width:0}
+  /* Vision auf dem Handy enger, damit alles ohne Scrollen auf den Bildschirm passt */
+  .vctrl{padding:2px 10px 10px}
+  .vbox{padding:12px;border-radius:18px}
+  .vlbl{margin:2px 2px 6px}
+  .vseg{margin-bottom:8px}
+  .vta{min-height:76px;margin:2px 0 8px;padding:10px 12px}
+  .vchk{padding:9px 12px;margin-bottom:8px;font-size:12px}
+  #varea>.empty svg{display:none}
+  #varea>.empty p{font-size:11px}
 }
 </style>
 </head>
@@ -528,10 +551,6 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
 
     <!-- VISION -->
     <div class="panel" id="vision-panel">
-      <div class="tb">
-        <button class="tbb arr" id="vundo" onclick="visUndo()" title="Zuletzt erstelltes oder bearbeitetes Bild entfernen" aria-label="Zurück" disabled><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Zurück</button>
-        <button class="tbb arr" id="vredo" onclick="visRedo()" title="Entferntes Bild wiederherstellen" aria-label="Vor" disabled><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>Vor</button>
-      </div>
       <div id="varea" ondragover="event.preventDefault();this.style.outline='2px dashed var(--gold)'" ondragleave="this.style.outline=''" ondrop="handleVisionDrop(event);this.style.outline=''"><div class="empty"><svg viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg><p><strong>Hier erscheint dein Bild</strong><br><span style="font-size:12px;opacity:.7">Schreibe unten deine Anweisung und tippe auf „Erstellen“.<br>Bilder kannst du auch hineinziehen, sie dienen dann als Referenz.</span></p></div></div>
       <div class="vctrl">
         <div class="vbox">
@@ -553,6 +572,8 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
             <button class="vib" onclick="clearVinp()" title="Eingabe leeren" aria-label="Eingabe leeren"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
             <button class="vib" onclick="enhPrompt()" title="Prompt verbessern lassen" aria-label="Prompt verbessern"><svg viewBox="0 0 24 24"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5"/></svg></button>
             <button class="vib" onclick="document.getElementById('ref-file').click()" title="Referenzbild hinzufügen" aria-label="Referenzbild hinzufügen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+            <button class="vib" id="vundo" onclick="visUndo()" title="Zurück: zuletzt erstelltes oder bearbeitetes Bild entfernen" aria-label="Zurück" disabled><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+            <button class="vib" id="vredo" onclick="visRedo()" title="Vor: entferntes Bild wiederherstellen" aria-label="Vor" disabled><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
             <button class="vgo" onclick="genImg()"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>ERSTELLEN</button>
           </div>
         </div>
