@@ -456,6 +456,8 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
     <!-- TEXT -->
     <div class="panel on" id="text-panel">
       <div class="tb"><div class="tbi"><div class="tbr">
+        <button class="tbb zen-dic" id="dicbtn" onclick="toggleDic()" style="display:none"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Diktat</button>
+        <button class="tbb ic zen-lang" id="diclang" onclick="toggleDicLang()" title="Diktatsprache" style="display:none;font-weight:700">DE</button>
         <button class="tbb ic" onclick="fmt('bold')" title="Fett" style="font-weight:800">B</button>
         <button class="tbb ic" onclick="fmt('italic')" title="Kursiv" style="font-style:italic;font-family:'Cormorant Garamond',Georgia,serif;font-size:19px">I</button>
         <button class="tbb ic" onclick="fmt('underline')" title="Unterstrichen" style="text-decoration:underline">U</button>
@@ -520,13 +522,11 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
         </div>
 
         <button class="tbb" onclick="openLang()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Sprache</button>
-        <button class="tbb zen-dic" id="dicbtn" onclick="toggleDic()" style="display:none"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Diktat</button>
-        <button class="tbb ic zen-lang" id="diclang" onclick="toggleDicLang()" title="Diktatsprache" style="display:none;font-weight:700">DE</button>
         <button class="tbb zen-hear" id="spkbtn" onclick="toggleSpeak()"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>Vorlesen</button>
         <select class="tsel" id="voicesel" title="Stimme zum Vorlesen" onchange="setVoice(this.value)">
-          <option value="g38l">Sulafat 3.8 Lite</option>
-          <option value="g38">Kore 3.8</option>
-          <option value="elm">ElevenLabs Brian ♂</option>
+          <option value="g38l">Sulafat</option>
+          <option value="g38">Kore</option>
+          <option value="elm">Brian 11 L</option>
         </select>
         <a class="tbb ic" id="audio-dl" style="display:none;text-decoration:none" title="Vorgelesenen Text als Audio herunterladen" aria-label="Audio herunterladen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>
       </div></div></div>

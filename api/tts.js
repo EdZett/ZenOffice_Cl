@@ -15,10 +15,10 @@ export default async function handler(req, res) {
 
   // Wählbare Stimmen
   const voices = {
-    g31:  { type: 'google', model: 'gemini-3.1-flash-tts-preview', voiceName: 'Kore',    label: 'Google 3.1 · Kore' },
-    g38:  { type: 'google', model: 'gemini-3.8-flash-tts',         voiceName: 'Kore',    label: 'Google 3.8 · Kore' },
-    g38l: { type: 'google', model: 'gemini-3.8-flash-lite-tts',    voiceName: 'Sulafat', label: 'Google 3.8 Lite · Sulafat' },
-    elm:  { type: 'eleven', model: 'fal-ai/elevenlabs/tts/turbo-v2.5', voiceName: 'Brian',   label: 'ElevenLabs · Brian' },
+    g31:  { type: 'google', model: 'gemini-3.1-flash-tts-preview', voiceName: 'Kore',    label: 'Kore (alt)' },
+    g38:  { type: 'google', model: 'gemini-3.8-flash-tts',         voiceName: 'Kore',    label: 'Kore' },
+    g38l: { type: 'google', model: 'gemini-3.8-flash-lite-tts',    voiceName: 'Sulafat', label: 'Sulafat' },
+    elm:  { type: 'eleven', model: 'fal-ai/elevenlabs/tts/turbo-v2.5', voiceName: 'Brian',   label: 'Brian 11 L' },
   };
   // Gewählte Stimme zuerst, dann Ersatz in der Reihenfolge der Lieblingsstimmen
   const order = [voice, 'g38l', 'g38', 'g31', 'elm'].filter((v, i, a) => voices[v] && a.indexOf(v) === i);
