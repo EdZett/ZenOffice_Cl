@@ -32,9 +32,10 @@ api/alibaba.js      Alibaba Qwen/Wan (Frankfurt): Auftrag anlegen, dann Abholen 
 api/tts.js          Vorlesen: Gemini-TTS-Stimmen und ElevenLabs über fal.ai, Ersatzkette
 api/imagen4.js      Google Imagen 4 (nicht in der Oberfläche erreichbar)
 manifest.json       PWA-Manifest (Symbole ?v=2, purpose "any")
-sw.js               Service Worker, Cache "zenoffice-claude-v2", /api/* wird nie gecacht
+sw.js               Service Worker, Cache "zenoffice-claude-v3", /api/* wird nie gecacht
 vercel.json         Header; maxDuration 60 s für api/alibaba.js
 icon-192/512, apple-touch-icon, icon-180   buntes Symbol (Frau mit Feder) für Desktop und Startbildschirm
+icon-maskable-192/512                      randlose Handy-Fassung (purpose "maskable"): ohne Silberrahmen, dunkelbrauner Rand, Motiv in der 80-%-Sicherheitszone – sonst füllt Android den runden Rahmen weiß auf
 favicon.ico, icon-32, icon.png             altes dezentes Sepia-Symbol (Browser-Tab), absichtlich so
 ```
 
