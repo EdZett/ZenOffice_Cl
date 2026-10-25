@@ -139,7 +139,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 .tbb.zen-hear:hover{background:rgba(122,158,122,.28);border-color:var(--sage);}
 
 /* Diktat – gleiche Größe wie andere */
-.tbb.zen-dic{background:rgba(201,169,110,.1);color:var(--text2);border-color:rgba(201,169,110,.22);}
+.tbb.zen-dic{background:rgba(201,169,110,.1);color:var(--text);border-color:rgba(201,169,110,.22);}
 .tbb.zen-dic[style*="color:var(--mint)"]{
   background:rgba(94,207,176,.2);color:var(--mint);
   border-color:rgba(94,207,176,.4);
@@ -320,9 +320,18 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
 #topbar{position:relative;z-index:60;min-height:50px}
 #dtitle{min-width:0}
 /* Zurück/Vor */
-.tbb.arr{min-height:44px;padding:8px 14px;font-weight:600}
-.tbb.arr svg{width:22px;height:22px;stroke-width:2.4}
 .tbb:disabled{opacity:.35;cursor:default;transform:none;box-shadow:none}
+/* Werkzeugleiste einheitlich: gleiche Höhe, gleiche Schrift, kräftiger Kontrast; Symbolknöpfe quadratisch */
+:root{--tbh:38px}
+.tb .tbb,.tb .tsel{height:var(--tbh);min-height:0;box-sizing:border-box}
+.tb .tbb{padding:0 14px;font-size:14px;font-weight:600;letter-spacing:.02em}
+/* :where hält die Farbe schwach, damit Optimieren, Löschen, Vorlesen usw. ihre eigenen Farben behalten */
+.tb :where(.tbb){color:var(--tbb-color,var(--text));border-color:var(--tbb-border,rgba(201,169,110,.32))}
+.tb .tbb svg{width:18px;height:18px;stroke-width:2}
+.tb .tbb.ic{width:var(--tbh);padding:0;justify-content:center;font-size:16px}
+.tb .tbb.ic svg{width:19px;height:19px;stroke-width:2.1}
+.tb .tsel{padding:0 10px;font-size:14px;font-weight:600;border-radius:22px;border:1.5px solid rgba(201,169,110,.32);background:var(--tbb-bg,rgba(201,169,110,.09));color:var(--text)}
+.tb .tsep{height:22px}
 /* KI-Eingabeleiste */
 .kibar{padding:10px 12px 12px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
 .kirow{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:0 14px;min-height:52px;transition:border-color .15s}
@@ -351,7 +360,7 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
   .tb{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:8px 10px}
   .tb::-webkit-scrollbar{display:none}
   .tb>*{flex-shrink:0}
-  .tb .tbb{min-height:44px}
+  :root{--tbh:44px}
   .ddm button{padding:14px 16px;font-size:14px}
   .kibar{padding:8px 10px 10px}
   .kirow{min-height:48px}
@@ -447,9 +456,9 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
     <!-- TEXT -->
     <div class="panel on" id="text-panel">
       <div class="tb"><div class="tbi"><div class="tbr">
-        <button class="tbb" onclick="fmt('bold')" title="Fett" style="font-weight:800;font-size:14px;padding:6px 11px">B</button>
-        <button class="tbb" onclick="fmt('italic')" title="Kursiv" style="font-style:italic;font-size:14px;font-family:'Cormorant Garamond',Georgia,serif;padding:6px 11px">I</button>
-        <button class="tbb" onclick="fmt('underline')" title="Unterstrichen" style="text-decoration:underline;font-size:14px;padding:6px 11px">U</button>
+        <button class="tbb ic" onclick="fmt('bold')" title="Fett" style="font-weight:800">B</button>
+        <button class="tbb ic" onclick="fmt('italic')" title="Kursiv" style="font-style:italic;font-family:'Cormorant Garamond',Georgia,serif;font-size:19px">I</button>
+        <button class="tbb ic" onclick="fmt('underline')" title="Unterstrichen" style="text-decoration:underline">U</button>
         <div class="tsep"></div>
         <select class="tsel" onchange="setFS(this.value)">
           <option value="13px">Klein</option>
@@ -462,10 +471,26 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
           <option value="handwriting">Comic</option>
         </select>
         <div class="tsep"></div>
-        <button class="tbb arr" onclick="doUndo()" title="Zurück (rückgängig)" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Zurück</button>
-        <button class="tbb arr" onclick="doRedo()" title="Vor (wiederholen)" id="redo-btn" aria-label="Vor"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>Vor</button>
-        <button class="tbb" onclick="copyText()" title="Markierten Text kopieren (oder alles)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Kopieren</button>
-        <button class="tbb zen-del" onclick="deleteText()" title="Markierten Text löschen (oder alles)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Löschen</button>
+        <button class="tbb ic" onclick="doUndo()" title="Zurück (rückgängig)" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+        <button class="tbb ic" onclick="doRedo()" title="Vor (wiederholen)" id="redo-btn" aria-label="Vor"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+        <button class="tbb ic" onclick="copyText()" title="Kopieren: markierten Text (oder alles)" aria-label="Kopieren"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        <button class="tbb ic zen-del" onclick="deleteText()" title="Löschen: markierten Text (oder alles)" aria-label="Löschen"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        <div class="dd">
+          <!-- Im/Export: Ablage mit Pfeil hinein und hinaus -->
+          <button class="tbb ic" onclick="tDD('dd-io')" title="Importieren / Exportieren" aria-label="Importieren / Exportieren"><svg viewBox="0 0 24 24"><path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/><path d="M8 3v11"/><path d="m4.5 10.5 3.5 3.5 3.5-3.5"/><path d="M16 14V3"/><path d="m12.5 6.5 3.5-3.5 3.5 3.5"/></svg></button>
+          <div class="ddm" id="dd-io" style="display:none">
+            <div class="ddl">Importieren</div>
+            <button onclick="document.getElementById('up-img').click();cDD('dd-io')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Bild einfügen</button>
+            <button onclick="document.getElementById('up-txt').click();cDD('dd-io')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Text / Markdown</button>
+            <div class="dds"></div>
+            <div class="ddl">Exportieren</div>
+            <button onclick="exp('txt');cDD('dd-io')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Als Text (.txt)</button>
+            <button onclick="exp('md');cDD('dd-io')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 15V9l2 2 2-2v6"/><path d="M15 9v6"/></svg>Als Markdown (.md)</button>
+            <button onclick="exp('pdf');cDD('dd-io')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>PDF / Drucken</button>
+            <div class="dds"></div>
+            <button onclick="saveProj();cDD('dd-io')"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>In Projekten speichern</button>
+          </div>
+        </div>
         </div><div class="tbr">
         <div class="tsep"></div>
 
@@ -496,31 +521,14 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
 
         <button class="tbb" onclick="openLang()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Sprache</button>
         <button class="tbb zen-dic" id="dicbtn" onclick="toggleDic()" style="display:none"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Diktat</button>
-        <button class="tbb zen-lang" id="diclang" onclick="toggleDicLang()" title="Diktatsprache" style="display:none;font-size:11px;font-weight:700;padding:7px 10px">DE</button>
+        <button class="tbb ic zen-lang" id="diclang" onclick="toggleDicLang()" title="Diktatsprache" style="display:none;font-weight:700">DE</button>
         <button class="tbb zen-hear" id="spkbtn" onclick="toggleSpeak()"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>Vorlesen</button>
         <select class="tsel" id="voicesel" title="Stimme zum Vorlesen" onchange="setVoice(this.value)">
           <option value="g38l">Sulafat 3.8 Lite</option>
           <option value="g38">Kore 3.8</option>
           <option value="elm">ElevenLabs Brian ♂</option>
         </select>
-        <a class="tbb" id="audio-dl" style="display:none;text-decoration:none" title="Audio herunterladen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Audio ↓</a>
-        <div class="tsep"></div>
-
-        <div class="dd">
-          <button class="tbb" onclick="tDD('dd-io')"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Im/Export</button>
-          <div class="ddm" id="dd-io" style="display:none">
-            <div class="ddl">Importieren</div>
-            <button onclick="document.getElementById('up-img').click();cDD('dd-io')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Bild einfügen</button>
-            <button onclick="document.getElementById('up-txt').click();cDD('dd-io')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Text / Markdown</button>
-            <div class="dds"></div>
-            <div class="ddl">Exportieren</div>
-            <button onclick="exp('txt');cDD('dd-io')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Als Text (.txt)</button>
-            <button onclick="exp('md');cDD('dd-io')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 15V9l2 2 2-2v6"/><path d="M15 9v6"/></svg>Als Markdown (.md)</button>
-            <button onclick="exp('pdf');cDD('dd-io')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>PDF / Drucken</button>
-            <div class="dds"></div>
-            <button onclick="saveProj();cDD('dd-io')"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>In Projekten speichern</button>
-          </div>
-        </div>
+        <a class="tbb ic" id="audio-dl" style="display:none;text-decoration:none" title="Vorgelesenen Text als Audio herunterladen" aria-label="Audio herunterladen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>
       </div></div></div>
 
       <div class="kibar">
