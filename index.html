@@ -331,6 +331,18 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
 .tb .tbb.ic{width:var(--tbh);padding:0;justify-content:center;font-size:16px}
 .tb .tbb.ic svg{width:19px;height:19px;stroke-width:2.1}
 .tb .tsel{padding:0 10px;font-size:14px;font-weight:600;border-radius:22px;border:1.5px solid rgba(201,169,110,.32);background:var(--tbb-bg,rgba(201,169,110,.09));color:var(--text)}
+/* Handy und Tablet (Touch): Leiste 50 % größer, runde Symbolknöpfe nochmals 25 % größer */
+@media (pointer:coarse){
+  :root:root{--tbh:57px;--tbr:71px} /* doppelt, damit es die spätere Handy-Regel (44 px) schlägt */
+  .tb .tbb,.tb .tsel{font-size:21px}
+  .tb .tbb{padding:0 20px}
+  .tb .tbb svg{width:27px;height:27px}
+  .tb .tbb.ic{width:var(--tbr);height:var(--tbr);font-size:26px;border-radius:50%}
+  .tb .tbb.ic svg{width:30px;height:30px}
+  .tb .tsel{padding:0 14px;border-radius:30px}
+  .tb .tbb{border-radius:36px}
+  .tb,.tb .tbr{gap:7px}
+}
 .tb .tsep{height:22px}
 /* KI-Eingabeleiste */
 .kibar{padding:10px 12px 12px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
@@ -747,8 +759,10 @@ window.addEventListener('load',()=>{
   // Seite darf nie wegscrollen (sonst verschwinden Blatt-Symbol und Titelfeld)
   window.addEventListener('scroll',()=>{if(window.scrollY||window.scrollX)window.scrollTo(0,0)},{passive:true});
   ['main','content'].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener('scroll',()=>{if(e.scrollTop)e.scrollTop=0;if(e.scrollLeft)e.scrollLeft=0},{passive:true})});
-  // Diktat überall anzeigen, wo der Browser Spracherkennung kann (auch Handy)
-  if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
+  // Diktat nur am PC: auf Handy und Tablet (Touch) schreibt die Browser-Erkennung Wörter mehrfach –
+  // dort nutzt man besser das Mikrofon der Tastatur
+  const isTouch=matchMedia('(pointer:coarse)').matches;
+  if(!isTouch && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)){
     document.getElementById('dicbtn').style.display='flex';
     document.getElementById('diclang').style.display='flex';
   }
