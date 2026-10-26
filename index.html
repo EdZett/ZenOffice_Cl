@@ -1329,11 +1329,11 @@ function copyWissen(){
   else{fallbackCopy(t);done()}
 }
 function fallbackCopy(t){const x=document.createElement('textarea');x.value=t;x.style.cssText='position:fixed;opacity:0';document.body.appendChild(x);x.select();try{document.execCommand('copy')}catch(e){}x.remove()}
-// Enter im KI-Feld: am PC wie gewohnt „Wissen“; auf Handy/Tablet nur Tastatur schließen,
-// damit die Senden-Taste nicht versehentlich „Wissen“ statt „Ändern“ auslöst
+// Enter im KI-Feld löst auf keinem Gerät etwas aus – Wissen (🔍) und Ändern (✏️) nur über die Knöpfe,
+// damit nie versehentlich das Falsche passiert. Auf Handy/Tablet schließt Enter die Tastatur.
 function kiEnter(inp){
-  if(matchMedia('(pointer:coarse)').matches){inp.blur(); if(inp.value.trim()) zoToast('Tippe auf 🔍 für Wissen oder ✏️ für Ändern')}
-  else runKi('wissen');
+  if(matchMedia('(pointer:coarse)').matches) inp.blur();
+  if(inp.value.trim()) zoToast('Tippe auf 🔍 für Wissen oder ✏️ für Ändern');
 }
 async function runKi(mode){
   const inp=document.getElementById('ki-cmd');

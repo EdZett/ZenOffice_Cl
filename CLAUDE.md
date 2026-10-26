@@ -99,7 +99,10 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 - Arbeitsbereich Frankfurt `ws-cbf9073m7wec0cdo`, Umfang „Global“. Die Modelle müssen dort unter Model Invocation **autorisiert** sein.
 
 **Text:**
-- Die KI-Leiste ist ein Eingabefeld mit zwei Symbolknöpfen: Lupe = Wissen, Stift = Ändern. Es gibt keine große Knopfreihe und keine Hinweiszeile.
+- Die KI-Leiste ist ein Eingabefeld mit zwei Symbolknöpfen: Lupe = Wissen (Antwort im eigenen Fenster `#wissen-ovl`, Text bleibt unberührt), Stift = Ändern (direkt im Text). Es gibt keine große Knopfreihe und keine Hinweiszeile.
+- **Auf allen Geräten gleich:** Enter im KI-Feld löst nichts aus (`kiEnter`, nur Hinweis bzw. Tastatur schließen). Der Nutzer will keine Unterschiede zwischen PC, Handy und Tablet bei Wissen/Ändern.
+- Ändern: Die Anweisung an Claude verlangt vollständige Umsetzung (nicht „verändere sonst nichts“). Bleibt der Text unverändert, kommt ein Hinweis statt einer falschen Erfolgsmeldung.
+- Touch-Geräte: Diktat ausgeblendet (schreibt dort Wörter mehrfach). Werkzeugleiste 57 px, runde Symbolknöpfe 71 px. Sie blendet sich beim Runterscrollen aus und kommt per Wisch nach unten oder Knopf „▾ Werkzeuge“ zurück. `keepAppInView()` und `interactive-widget=resizes-content` verhindern, dass die Tastatur die App aus dem Bild schiebt.
 - `#dtitle` zeigt im Textbereich den Platzhalter „Textname…“.
 - Werkzeugleiste: auf dem PC eine Reihe, auf dem Handy **zwei Reihen**, die gemeinsam seitlich wischen (`.tbi`/`.tbr`). Alle Funktionen bleiben erhalten.
 
