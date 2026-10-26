@@ -365,6 +365,16 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
 .kib:active{transform:scale(.94)}
 #wissen-q{font-family:var(--fs);font-style:italic;color:var(--text2);font-size:17px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
 #wissen-a{white-space:pre-wrap;line-height:1.75;font-size:15px;color:var(--text);user-select:text;-webkit-user-select:text}
+/* Gesprächsverlauf im Antwortfenster */
+.wturn-q{font-family:var(--fs);font-style:italic;color:var(--text2);font-size:17px;margin:18px 0 12px;padding-top:14px;padding-bottom:10px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.wturn-a{white-space:pre-wrap;line-height:1.75;font-size:15px;color:var(--text);user-select:text;-webkit-user-select:text}
+.wcopy{display:block;margin:8px 0 0 auto;background:none;border:1px solid var(--border);color:var(--text2);border-radius:14px;padding:5px 12px;font-family:var(--fn);font-size:12px;cursor:pointer}
+.wcopy:hover{color:var(--gold);border-color:var(--gold)}
+.wfollow{display:none;gap:8px;align-items:center;padding:10px 16px;border-top:1px solid var(--border)}
+.wfollow input{flex:1;min-width:0;background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:12px 14px;color:var(--text);font-family:var(--fn);font-size:16px;outline:none}
+.wfollow input:focus{border-color:var(--gold)}
+.wfollow .kib{width:46px;height:46px}
+.wfollow .kib svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .modal .mfoot button{min-height:48px;padding:0 20px;font-size:14px}
 .zotoast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);background:var(--bg4);color:var(--text);border:1px solid var(--border2);padding:12px 18px;border-radius:14px;font-size:13px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:88vw;text-align:center;transition:opacity .35s}
 .zotoast.out{opacity:0}
@@ -630,7 +640,12 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
 <div class="ovl" id="wissen-ovl" style="display:none" onclick="if(event.target===this)closeM('wissen-ovl')">
   <div class="modal">
     <div class="mhd"><h3>Antwort</h3><button class="ib" onclick="closeM('wissen-ovl')" aria-label="Schließen"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-    <div class="mbody"><div id="wissen-q"></div><div id="wissen-a"></div></div>
+    <div class="mbody" id="wissen-body"><div id="wissen-q"></div><div id="wissen-a"></div><button class="wcopy" onclick="copyAnswer(document.getElementById('wissen-a'))">Kopieren</button><div id="wissen-more"></div></div>
+    <!-- Folgefragen: die KI kennt das bisherige Gespräch in diesem Fenster -->
+    <div class="wfollow" id="wissen-follow">
+      <input id="wissen-in" type="text" placeholder="Folgefrage stellen…" enterkeyhint="send" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();wissenFollow()}">
+      <button class="kib kib-w" onclick="wissenFollow()" title="Folgefrage senden" aria-label="Folgefrage senden"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+    </div>
     <div class="mfoot"><button class="bgh" onclick="closeM('wissen-ovl')">Schließen</button><button class="bgh" id="wissen-tovis" onclick="analysisToVision()" style="display:none">Prompt übernehmen</button><button class="bg" onclick="copyWissen()">Antwort kopieren</button></div>
   </div>
 </div>
@@ -971,8 +986,9 @@ function uploadTxt(e){
 // CLAUDE API
 // ═══════════════════════════════════════
 let lastClaudeStop='';
+// user: Text einer einzelnen Nachricht oder ein ganzer Gesprächsverlauf (Array von {role,content})
 async function callClaude(user,system='',maxTokens=2000){
-  const body={model:CLAUDE[energy],max_tokens:maxTokens,messages:[{role:'user',content:user}]};
+  const body={model:CLAUDE[energy],max_tokens:maxTokens,messages:Array.isArray(user)?user:[{role:'user',content:user}]};
   if(system) body.system=system;
   const r=await fetch('/api/claude',{
     method:'POST',headers:{'Content-Type':'application/json'},
@@ -1321,9 +1337,43 @@ function textToFragment(t){
   t.split('\n').forEach((line,i)=>{if(i)f.appendChild(document.createElement('br'));f.appendChild(document.createTextNode(line))});
   return f;
 }
-function openWissen(q,a){document.getElementById('wissen-tovis').style.display='none';document.getElementById('wissen-q').textContent=q;document.getElementById('wissen-a').textContent=a;document.getElementById('wissen-ovl').style.display='flex'}
+// Jedes Öffnen beginnt ein neues Gespräch; Folgefragen nur bei „Wissen“ (nicht bei der Bildanalyse)
+let wissenHist=[];
+const WISSEN_SYS='Du bist ein hilfreicher, präziser Assistent. Antworte auf Deutsch, klar und gut lesbar, ohne unnötige Einleitung. Bei Folgefragen beziehst du dich auf das bisherige Gespräch.';
+function openWissen(q,a,follow=false){
+  document.getElementById('wissen-tovis').style.display='none';
+  document.getElementById('wissen-q').textContent=q;document.getElementById('wissen-a').textContent=a;
+  document.getElementById('wissen-more').innerHTML=''; wissenHist=[];
+  const f=document.getElementById('wissen-follow'); f.style.display=follow?'flex':'none'; document.getElementById('wissen-in').value='';
+  document.getElementById('wissen-ovl').style.display='flex';
+}
+async function wissenFollow(){
+  const inp=document.getElementById('wissen-in'), q=inp.value.trim(); if(!q) return;
+  if(!wissenHist.length){zoToast('Bitte warte, bis die erste Antwort da ist');return}
+  inp.value='';
+  const more=document.getElementById('wissen-more'), body=document.getElementById('wissen-body');
+  const qd=document.createElement('div');qd.className='wturn-q';qd.textContent=q;
+  const ad=document.createElement('div');ad.className='wturn-a';ad.textContent='KI denkt nach…';
+  const cb=document.createElement('button');cb.className='wcopy';cb.textContent='Kopieren';cb.onclick=()=>copyAnswer(ad);
+  more.append(qd,ad,cb); body.scrollTop=body.scrollHeight;
+  const msgs=[...wissenHist,{role:'user',content:q}];
+  showAI('KI antwortet…');
+  try{
+    const r=await callClaude(msgs,WISSEN_SYS,4000)||'(keine Antwort erhalten)';
+    ad.textContent=r; wissenHist=[...msgs,{role:'assistant',content:r}];
+  }catch(e){ad.textContent='Fehler: '+e.message}
+  finally{hideAI(); qd.scrollIntoView({behavior:'smooth',block:'start'})}
+}
+// Eine einzelne Antwort kopieren (Knopf „Kopieren“ unter jeder Antwort)
+function copyAnswer(el){
+  const t=el.textContent, done=()=>zoToast('✓ Antwort kopiert');
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,()=>{fallbackCopy(t);done()})}
+  else{fallbackCopy(t);done()}
+}
+// Knopf unten: kopiert die neueste Antwort
 function copyWissen(){
-  const t=document.getElementById('wissen-a').textContent;
+  const all=document.querySelectorAll('#wissen-more .wturn-a');
+  const t=(all.length?all[all.length-1]:document.getElementById('wissen-a')).textContent;
   const done=()=>zoToast('✓ Antwort kopiert');
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,()=>{fallbackCopy(t);done()})}
   else{fallbackCopy(t);done()}
@@ -1341,13 +1391,15 @@ async function runKi(mode){
   if(!cmd){inp.focus();return}
   const ed=document.getElementById('editor');
   if(mode==='wissen'){
-    openWissen(cmd,'KI denkt nach…'); inp.value='';
+    openWissen(cmd,'KI denkt nach…',true); inp.value='';
     showAI('KI antwortet…');
     const ctx=ed.innerText.trim().slice(0,12000);
     try{
       const prompt=ctx?('Frage: '+cmd+'\n\n(Optionaler Kontext – der aktuelle Text der Person. Nutze ihn nur, wenn sich die Frage darauf bezieht:)\n'+ctx):cmd;
-      const r=await callClaude(prompt,'Du bist ein hilfreicher, präziser Assistent. Antworte auf Deutsch, klar und gut lesbar, ohne unnötige Einleitung.');
+      const r=await callClaude(prompt,WISSEN_SYS,4000);
       document.getElementById('wissen-a').textContent=r||'(keine Antwort erhalten)';
+      // Gespräch merken, damit Folgefragen im Fenster darauf aufbauen
+      if(r) wissenHist=[{role:'user',content:prompt},{role:'assistant',content:r}];
     }catch(e){document.getElementById('wissen-a').textContent='Fehler: '+e.message}
     finally{hideAI()}
     return;

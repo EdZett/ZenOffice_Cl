@@ -100,6 +100,7 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 
 **Text:**
 - Die KI-Leiste ist ein Eingabefeld mit zwei Symbolknöpfen: Lupe = Wissen (Antwort im eigenen Fenster `#wissen-ovl`, Text bleibt unberührt), Stift = Ändern (direkt im Text). Es gibt keine große Knopfreihe und keine Hinweiszeile.
+- Antwortfenster mit Gesprächsverlauf: Feld „Folgefrage stellen…“ (`wissenFollow`). `wissenHist` wird als ganzer Verlauf an Claude geschickt (`callClaude` nimmt auch ein Array). Jede Antwort hat einen eigenen „Kopieren“-Knopf, der Knopf unten kopiert die neueste. Ein neues Öffnen beginnt ein neues Gespräch. Bei der Bildanalyse gibt es kein Folgefeld.
 - **Auf allen Geräten gleich:** Enter im KI-Feld löst nichts aus (`kiEnter`, nur Hinweis bzw. Tastatur schließen). Der Nutzer will keine Unterschiede zwischen PC, Handy und Tablet bei Wissen/Ändern.
 - Ändern: Die Anweisung an Claude verlangt vollständige Umsetzung (nicht „verändere sonst nichts“). Bleibt der Text unverändert, kommt ein Hinweis statt einer falschen Erfolgsmeldung.
 - Touch-Geräte: Diktat ausgeblendet (schreibt dort Wörter mehrfach). Werkzeugleiste 57 px, runde Symbolknöpfe 71 px. Sie blendet sich beim Runterscrollen aus und kommt per Wisch nach unten oder Knopf „▾ Werkzeuge“ zurück. `keepAppInView()` und `interactive-widget=resizes-content` verhindern, dass die Tastatur die App aus dem Bild schiebt.
