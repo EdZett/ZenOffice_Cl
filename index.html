@@ -570,7 +570,8 @@ body.light select option:checked{color:#fff}
         <select class="tsel" id="voicesel" title="Stimme zum Vorlesen" onchange="setVoice(this.value)">
           <option value="g38l">Sulafat</option>
           <option value="g38">Kore</option>
-          <option value="elm">Brian 11 L</option>
+          <option value="elj">Joy</option>
+          <option value="ele">Eret</option>
         </select>
         <a class="tbb ic" id="audio-dl" style="display:none;text-decoration:none" title="Vorgelesenen Text als Audio herunterladen" aria-label="Audio herunterladen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>
         <button class="tbb zen-dic" id="dicbtn" onclick="toggleDic()" style="display:none"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Diktat</button>
@@ -1132,7 +1133,8 @@ const STOP_SVG='<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:cu
 // Gewählte Vorlese-Stimme (wird im Browser gemerkt)
 let ttsVoice='g38l';
 try{ttsVoice=localStorage.getItem('zo_voice')||'g38l'}catch(e){}
-if(!['g38l','g38','elm'].includes(ttsVoice)) ttsVoice='g38l'; // früher gewählte, inzwischen entfernte Stimmen
+if(ttsVoice==='elm') ttsVoice='elj'; // Brian wurde durch Joy ersetzt
+if(!['g38l','g38','elj','ele'].includes(ttsVoice)) ttsVoice='g38l'; // früher gewählte, inzwischen entfernte Stimmen
 function setVoice(v){ttsVoice=v;try{localStorage.setItem('zo_voice',v)}catch(e){}}
 document.addEventListener('DOMContentLoaded',()=>{const s=document.getElementById('voicesel');if(s)s.value=ttsVoice});
 

@@ -57,8 +57,8 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 - Vorlesen (`ttsVoice`, localStorage `zo_voice`), Auswahl im Feld neben „Vorlesen“:
   - `g38l` Sulafat 3.8 Lite: **Standard**, Lieblingsstimme des Nutzers
   - `g38` Kore 3.8
-  - `elm` ElevenLabs Brian (männlich, tief und warm; fal `elevenlabs/tts/turbo-v2.5`)
-  - Ersatzkette: gewählte Stimme, g38l, g38, g31 (Kore 3.1, nur noch stiller Ersatz), elm. Die Browserstimme kommt nur als allerletzter Notbehelf.
+  - `elj` ElevenLabs Joy und `ele` ElevenLabs Everett (in der App „Eret“, kürzer), deutsche Fassungen aus der Stimmenbibliothek, per Voice-ID über fal `elevenlabs/tts/turbo-v2.5`. Sie ersetzen seit 2026-10-27 Brian (`elm`; gespeicherte Wahl wird zu Joy).
+  - Ersatzkette: gewählte Stimme, g38l, g38, g31 (Kore 3.1, nur noch stiller Ersatz), elj, ele. Die Browserstimme kommt nur als allerletzter Notbehelf.
 - Speicher im Browser: localStorage `zo_prov` (Bildprogramm), `zo_voice`, `zo_projs`. Projekte und Bilder liegen in IndexedDB `zenoffice`.
 
 ## 3. Kernelemente & Anker-Code (nicht ohne Not ändern)
