@@ -332,6 +332,12 @@ body{position:fixed;inset:0;width:100%;height:100vh;height:100dvh;overscroll-beh
 .tb .tbb.ic{width:var(--tbh);padding:0;justify-content:center;font-size:16px}
 .tb .tbb.ic svg{width:19px;height:19px;stroke-width:2.1}
 .tb .tsel{padding:0 10px;font-size:14px;font-weight:600;border-radius:22px;border:1.5px solid rgba(201,169,110,.32);background:var(--tbb-bg,rgba(201,169,110,.09));color:var(--text)}
+/* Ausklapplisten (Größe, Schriftart, Stimme …): sonst zeichnet der Browser sie weiß mit hellem App-Text = unlesbar */
+body{color-scheme:dark}
+body.light{color-scheme:light}
+select option{background-color:var(--bg2);color:var(--text);font-weight:600}
+select option:checked{background-color:var(--gold);color:#1a1410}
+body.light select option:checked{color:#fff}
 /* Ausgeblendete Werkzeugleiste (nur Touch): kleiner Knopf oben holt sie zurück */
 .tools-show{display:none}
 #text-panel.tools-hidden .tb,#text-panel.tools-hidden .kibar{display:none}
