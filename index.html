@@ -902,7 +902,7 @@ function doUndo(){
     const s=undoStack[undoPtr];
     document.getElementById('editor').innerHTML=s.h;
     document.getElementById('dtitle').value=s.t;
-    updStat();
+    updStat(); autoSaveTitle();
     document.getElementById('undoinfo').textContent=undoPtr>0?'↩ '+undoPtr+' Schritt'+(undoPtr>1?'e':'')+' verfügbar':'';
   }
 }
@@ -912,7 +912,7 @@ function doRedo(){
     const s=undoStack[undoPtr];
     document.getElementById('editor').innerHTML=s.h;
     document.getElementById('dtitle').value=s.t;
-    updStat();
+    updStat(); autoSaveTitle();
   }
 }
 
@@ -952,6 +952,10 @@ function doAutoSave(){
   curTextId=proj.id; rememberText(proj.id);
   trimProjs(projs); setProjs(projs); renderProjs();
 }
+// Geht die App in den Hintergrund oder wird geschlossen, sofort speichern (nicht erst nach der Wartezeit)
+function flushSave(){if(autoSaveTimer){clearTimeout(autoSaveTimer);autoSaveTimer=null;doAutoSave()}}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)flushSave()});
+window.addEventListener('pagehide',flushSave);
 // Zuletzt bearbeiteten Text merken und beim nächsten Start (auch nach einem ungewollten Neuladen) wieder öffnen
 function rememberText(id){try{id?localStorage.setItem('zo_lasttext',id):localStorage.removeItem('zo_lasttext')}catch(e){}}
 function restoreLastText(){
@@ -983,7 +987,7 @@ function uploadImg(e){
     const sel=window.getSelection();
     if(sel.rangeCount>0){const rng=sel.getRangeAt(0);rng.collapse(false);rng.insertNode(img)}
     else ed.appendChild(img);
-    ed.appendChild(document.createElement('br')); pushUndo();
+    ed.appendChild(document.createElement('br')); pushUndo(); autoSaveTitle();
   };
   r.readAsDataURL(file); e.target.value='';
 }
@@ -1046,7 +1050,7 @@ async function aiTxt(instruction){
       'Du bist ein professioneller Textassistent. Gib NUR den fertigen Text zurück – keine Vorbemerkungen, Anführungszeichen oder Erklärungen.');
     if(selTxt&&sel.rangeCount>0){const rng=sel.getRangeAt(0);rng.deleteContents();rng.insertNode(document.createTextNode(r))}
     else ed.innerText=r;
-    updStat(); pushUndo();
+    updStat(); pushUndo(); autoSaveTitle();
   }catch(e){alert('Fehler: '+e.message)}
   finally{ed.style.opacity='1';ed.contentEditable='true';hideAI()}
 }
@@ -1286,7 +1290,7 @@ async function doTrans(lang){
         'Professioneller Übersetzer. Nur die Übersetzung.'
       );
     }
-    ed.innerText=result; updStat(); pushUndo();
+    ed.innerText=result; updStat(); pushUndo(); autoSaveTitle();
   }catch(e){alert('Übersetzungsfehler: '+e.message)}
   finally{ed.style.opacity='1';ed.contentEditable='true';hideAI()}
 }
