@@ -344,15 +344,16 @@ body.light select option:checked{color:#fff}
 #text-panel.tools-hidden .tools-show{display:block;align-self:center;margin:6px auto;padding:7px 18px;border-radius:20px;border:1.5px solid rgba(201,169,110,.4);background:var(--bg2);color:var(--gold);font-family:var(--fn);font-size:15px;font-weight:600;flex-shrink:0;cursor:pointer}
 /* Handy und Tablet (Touch): Leiste 50 % größer, runde Symbolknöpfe nochmals 25 % größer */
 @media (pointer:coarse){
-  :root:root{--tbh:57px;--tbr:71px} /* doppelt, damit es die spätere Handy-Regel (44 px) schlägt */
-  .tb .tbb,.tb .tsel{font-size:21px}
-  .tb .tbb{padding:0 20px}
-  .tb .tbb svg{width:27px;height:27px}
-  .tb .tbb.ic{width:var(--tbr);height:var(--tbr);font-size:26px;border-radius:50%}
-  .tb .tbb.ic svg{width:30px;height:30px}
-  .tb .tsel{padding:0 14px;border-radius:30px}
-  .tb .tbb{border-radius:36px}
-  .tb,.tb .tbr{gap:7px}
+  /* Wunsch des Nutzers: 20 % kleiner als die erste Vergrößerung (57/71 px → 46/57 px); KI-Leiste bleibt unverändert */
+  :root:root{--tbh:46px;--tbr:57px} /* doppelt, damit es die spätere Handy-Regel (44 px) schlägt */
+  .tb .tbb,.tb .tsel{font-size:17px}
+  .tb .tbb{padding:0 16px}
+  .tb .tbb svg{width:22px;height:22px}
+  .tb .tbb.ic{width:var(--tbr);height:var(--tbr);font-size:21px;border-radius:50%}
+  .tb .tbb.ic svg{width:24px;height:24px}
+  .tb .tsel{padding:0 11px;border-radius:24px}
+  .tb .tbb{border-radius:29px}
+  .tb,.tb .tbr{gap:6px}
 }
 .tb .tsep{height:22px}
 /* KI-Eingabeleiste */
