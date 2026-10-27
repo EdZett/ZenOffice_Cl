@@ -90,6 +90,7 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
   - Karten: `visTrack`, `visUndo`, `visRedo`
   - Pinselstriche: `vtSnap`, `vtUndo`, `vtRedo`, bis zu 30 Schritte
 - `shrinkImg()`: Referenzbilder und Bearbeitungsbilder werden auf höchstens 1536 px (JPEG) verkleinert. Vercel erlaubt nur etwa 4,5 MB pro Anfrage, sonst kommt **Fehler 413** (`TOO_BIG`).
+- Bilder hineinziehen (`initVisDrop`): auf die Bildfläche `#varea` gezogen → eigene Karte „Eigenes Bild“ (`addUploadCard`) mit Bearbeiten/Analyse; auf die Steuerung `.vctrl` gezogen → Referenzbild. Datei-Ablegen anderswo wird abgefangen, damit der Browser das Bild nicht selbst öffnet.
 - `fitVImg()`: Der Bildrahmen übernimmt das echte Seitenverhältnis (`object-fit: contain`). Nichts wird abgeschnitten.
 
 **Alibaba (`api/alibaba.js`):**
@@ -104,6 +105,7 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 - **Auf allen Geräten gleich:** Enter im KI-Feld löst nichts aus (`kiEnter`, nur Hinweis bzw. Tastatur schließen). Der Nutzer will keine Unterschiede zwischen PC, Handy und Tablet bei Wissen/Ändern.
 - Ändern: Die Anweisung an Claude verlangt vollständige Umsetzung (nicht „verändere sonst nichts“). Bleibt der Text unverändert, kommt ein Hinweis statt einer falschen Erfolgsmeldung.
 - Touch-Geräte: Diktat ausgeblendet (schreibt dort Wörter mehrfach). Werkzeugleiste 46 px, runde Symbolknöpfe 57 px (nach Wunsch 20 % kleiner als zuerst). Sie blendet sich beim Runterscrollen aus und kommt per Wisch nach unten oder Knopf „▾ Werkzeuge“ zurück. `keepAppInView()` und `interactive-widget=resizes-content` verhindern, dass die Tastatur die App aus dem Bild schiebt.
+- Bilder im Text (`insertEdImg`): per Importieren, Hineinziehen oder Einfügen (Strg+V), auf 1600 px verkleinert, zunächst 50 % breit. Antippen zeigt die Leiste `#imgbar` (S 25 % / M 50 % / L 75 % / Voll, ✕) und einen Ziehpunkt `#imggrip` für freie Größe; der Rahmen `#imgbox` liegt außerhalb des Textes, damit nichts davon mitgespeichert wird.
 - `#dtitle` zeigt im Textbereich den Platzhalter „Textname…“.
 - Werkzeugleiste: auf dem PC eine Reihe, auf dem Handy **zwei Reihen**, die gemeinsam seitlich wischen (`.tbi`/`.tbr`). Alle Funktionen bleiben erhalten.
 

@@ -174,7 +174,19 @@ body.light .tbb.zen-hear{background:rgba(80,140,80,.12);color:#3a7a50;border-col
 .edwrap{flex:1;overflow-y:auto;display:flex;flex-direction:column;background:var(--bg);position:relative}
 #editor{flex:1;padding:32px 48px;font-size:14px;line-height:1.85;outline:none;color:var(--text);font-family:var(--fn);min-height:100%}
 #editor:empty::before{content:'Beginne zu schreiben…';color:var(--text3);font-style:italic;pointer-events:none;font-family:var(--fs);font-size:17px}
-#editor img{max-width:100%;height:auto;border-radius:8px;margin:8px 0;display:block}
+#editor img{max-width:100%;height:auto;border-radius:8px;margin:8px 0;display:block;cursor:pointer}
+#imgbox{position:absolute;z-index:29;display:none;border:3px solid var(--gold);border-radius:10px;pointer-events:none}
+#imgbox.on{display:block}
+#editor img,#imgbox,#imggrip,#imgbar{transition:none}
+.edwrap.drop{outline:2px dashed var(--gold);outline-offset:-8px}
+/* Leiste für Bildgröße im Text (erscheint beim Antippen eines Bildes) */
+#imgbar{position:absolute;z-index:30;display:none;gap:4px;padding:5px;background:var(--bg2);border:1px solid var(--gold);border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+#imgbar.on{display:flex}
+#imgbar button{border:1px solid var(--border);background:var(--bg3);color:var(--text);border-radius:16px;padding:6px 11px;font-size:13px;font-weight:600;cursor:pointer}
+#imgbar button.on{background:var(--gold);color:#1a1410;border-color:var(--gold)}
+#imgbar button.del{color:var(--rose)}
+#imggrip{position:absolute;z-index:31;display:none;width:20px;height:20px;border-radius:50%;background:var(--gold);border:2px solid var(--bg);cursor:nwse-resize;touch-action:none}
+#imggrip.on{display:block}
 
 /* DICTATION LEGEND */
 #dicleg{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#4a6b5e;border:none;color:#fff;padding:20px 48px;border-radius:32px;font-size:20px;font-style:italic;font-weight:500;display:none;align-items:center;gap:16px;backdrop-filter:blur(16px);z-index:500;transition:opacity .5s;box-shadow:0 8px 32px rgba(0,0,0,.35);min-width:380px;max-width:80vw;justify-content:center;letter-spacing:.01em}
@@ -576,6 +588,8 @@ body.light select option:checked{color:#fff}
       <button class="tools-show" onclick="showTools()" aria-label="Werkzeuge einblenden">▾ Werkzeuge</button>
       <div class="edwrap">
         <div id="editor" contenteditable="true" spellcheck="true" oninput="onEdit()" onclick="if(dictating)stopDic()"></div>
+        <div id="imgbar" onmousedown="event.preventDefault()"><button onclick="imgSize(25)">S</button><button onclick="imgSize(50)">M</button><button onclick="imgSize(75)">L</button><button onclick="imgSize(100)">Voll</button><button class="del" onclick="imgDel()" title="Bild entfernen">✕</button></div>
+        <div id="imgbox"></div><div id="imggrip" title="Ziehen, um die Größe zu ändern"></div>
         <div id="dicleg"><div class="dcdot"></div><span id="dicint"></span></div>
         <div id="undoinfo"></div>
       </div>
@@ -594,7 +608,7 @@ body.light select option:checked{color:#fff}
 
     <!-- VISION -->
     <div class="panel" id="vision-panel">
-      <div id="varea" ondragover="event.preventDefault();this.style.outline='2px dashed var(--gold)'" ondragleave="this.style.outline=''" ondrop="handleVisionDrop(event);this.style.outline=''"><div class="empty"><svg viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg><p><strong>Hier erscheint dein Bild</strong><br><span style="font-size:12px;opacity:.7">Schreibe unten deine Anweisung und tippe auf „Erstellen“.<br>Bilder kannst du auch hineinziehen, sie dienen dann als Referenz.</span></p></div></div>
+      <div id="varea"><div class="empty"><svg viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg><p><strong>Hier erscheint dein Bild</strong><br><span style="font-size:12px;opacity:.7">Schreibe unten deine Anweisung und tippe auf „Erstellen“.<br>Bilder hierher ziehen = zum Bearbeiten oder Analysieren.<br>Auf das Anweisungsfeld ziehen = als Referenz.</span></p></div></div>
       <div class="vctrl">
         <div class="vbox">
           <div class="vlbl">Bildprogramm</div>
@@ -783,7 +797,7 @@ let undoStack=[], undoPtr=-1;
 // INIT
 // ═══════════════════════════════════════
 window.addEventListener('load',()=>{
-  loadSet(); buildLangs(); updStat(); pushUndo(); initProjs(); setImgSrc(imgProv);
+  loadSet(); buildLangs(); updStat(); pushUndo(); initProjs(); setImgSrc(imgProv); initEdDrop(); initVisDrop();
   // Seite darf nie wegscrollen (sonst verschwinden Blatt-Symbol und Titelfeld)
   window.addEventListener('scroll',()=>{if(window.scrollY||window.scrollX)window.scrollTo(0,0)},{passive:true});
   ['main','content'].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener('scroll',()=>{if(e.scrollTop)e.scrollTop=0;if(e.scrollLeft)e.scrollLeft=0},{passive:true})});
@@ -979,19 +993,72 @@ function updStat(){
 // ═══════════════════════════════════════
 function uploadImg(e){
   const file=e.target.files[0]; if(!file) return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    const img=document.createElement('img');
-    img.src=ev.target.result;
-    img.style.cssText='max-width:100%;border-radius:8px;margin:8px 0;display:block';
-    const ed=document.getElementById('editor'); ed.focus();
-    const sel=window.getSelection();
-    if(sel.rangeCount>0){const rng=sel.getRangeAt(0);rng.collapse(false);rng.insertNode(img)}
-    else ed.appendChild(img);
-    ed.appendChild(document.createElement('br')); pushUndo(); autoSaveTitle();
-  };
-  r.readAsDataURL(file); e.target.value='';
+  insertEdImg(file); e.target.value='';
 }
+// Bild in den Text: verkleinert (spart Speicher), zunächst halbe Breite, an Cursor- oder Ablegestelle
+async function insertEdImg(file,rng){
+  const ed=document.getElementById('editor');
+  let url=await blobToDataUrl(file); try{url=(await shrinkImg(url,1600)).url}catch(e){}
+  const img=document.createElement('img'); img.src=url; img.style.width='50%';
+  ed.focus();
+  const sel=window.getSelection();
+  if(!rng&&sel.rangeCount>0&&ed.contains(sel.anchorNode)) rng=sel.getRangeAt(0);
+  if(rng&&ed.contains(rng.startContainer)){rng.collapse(false);rng.insertNode(img);img.after(document.createElement('br'))}
+  else{ed.appendChild(img);ed.appendChild(document.createElement('br'))}
+  updStat(); pushUndo(); autoSaveTitle(); selImg(img);
+}
+function imgFiles(dt){return Array.from(dt?.files||[]).filter(f=>f.type.startsWith('image/'))}
+// Ziehen & Einfügen im Text
+function initEdDrop(){
+  const ed=document.getElementById('editor'), wrap=ed.closest('.edwrap');
+  wrap.addEventListener('dragover',e=>{if([...e.dataTransfer.types].includes('Files')){e.preventDefault();wrap.classList.add('drop')}});
+  wrap.addEventListener('dragleave',e=>{if(!wrap.contains(e.relatedTarget))wrap.classList.remove('drop')});
+  wrap.addEventListener('drop',async e=>{
+    wrap.classList.remove('drop');
+    const files=imgFiles(e.dataTransfer); if(!files.length) return;
+    e.preventDefault();
+    let rng=document.caretRangeFromPoint?.(e.clientX,e.clientY);
+    if(!rng&&document.caretPositionFromPoint){const p=document.caretPositionFromPoint(e.clientX,e.clientY);if(p){rng=document.createRange();rng.setStart(p.offsetNode,p.offset)}}
+    for(const f of files) await insertEdImg(f,rng);
+  });
+  ed.addEventListener('paste',async e=>{
+    const files=imgFiles(e.clipboardData); if(!files.length) return;
+    e.preventDefault(); for(const f of files) await insertEdImg(f);
+  });
+  // Bild antippen → Größenleiste; woanders hin → ausblenden
+  ed.addEventListener('click',e=>{if(e.target.tagName==='IMG')selImg(e.target);else selImg(null)});
+  wrap.addEventListener('scroll',()=>placeImgBar());
+  window.addEventListener('resize',()=>placeImgBar());
+  ed.addEventListener('input',()=>{if(selImgEl&&!ed.contains(selImgEl))selImg(null)});
+  // Ecke ziehen: freie Größe in Prozent der Textbreite
+  const grip=document.getElementById('imggrip');
+  grip.addEventListener('pointerdown',e=>{
+    if(!selImgEl) return; e.preventDefault(); grip.setPointerCapture(e.pointerId);
+    const x0=e.clientX, w0=selImgEl.getBoundingClientRect().width, full=ed.clientWidth-parseFloat(getComputedStyle(ed).paddingLeft)-parseFloat(getComputedStyle(ed).paddingRight);
+    const mv=ev=>{const p=Math.max(10,Math.min(100,Math.round((w0+ev.clientX-x0)/full*100)));selImgEl.style.width=p+'%';placeImgBar()};
+    const up=()=>{grip.removeEventListener('pointermove',mv);grip.removeEventListener('pointerup',up);pushUndo();autoSaveTitle()};
+    grip.addEventListener('pointermove',mv); grip.addEventListener('pointerup',up);
+  });
+}
+let selImgEl=null;
+function selImg(img){
+  selImgEl=img; placeImgBar(); if(img&&!img.complete) img.addEventListener('load',placeImgBar,{once:true});
+}
+function placeImgBar(){
+  const bar=document.getElementById('imgbar'), grip=document.getElementById('imggrip'), box=document.getElementById('imgbox');
+  if(selImgEl&&!selImgEl.isConnected) selImgEl=null;
+  [bar,grip,box].forEach(x=>x.classList.toggle('on',!!selImgEl)); if(!selImgEl) return;
+  const wrap=bar.parentNode, wr=wrap.getBoundingClientRect(), r=selImgEl.getBoundingClientRect();
+  const top=r.top-wr.top+wrap.scrollTop;
+  Object.assign(box.style,{top:top-4+'px',left:r.left-wr.left-4+'px',width:r.width+8+'px',height:r.height+8+'px'});
+  bar.style.top=Math.max(wrap.scrollTop+4,top-bar.offsetHeight-6)+'px';
+  bar.style.left=Math.max(4,Math.min(r.left-wr.left,wr.width-bar.offsetWidth-4))+'px';
+  grip.style.top=(top+r.height-12)+'px'; grip.style.left=(r.right-wr.left-12)+'px';
+  const w=Math.round(parseFloat(selImgEl.style.width)||100);
+  bar.querySelectorAll('button:not(.del)').forEach(b=>b.classList.toggle('on',b.textContent===({25:'S',50:'M',75:'L',100:'Voll'})[w]));
+}
+function imgSize(p){if(!selImgEl)return; selImgEl.style.width=p+'%'; placeImgBar(); pushUndo(); autoSaveTitle()}
+function imgDel(){if(!selImgEl)return; const i=selImgEl; selImg(null); if(i.nextSibling?.tagName==='BR')i.nextSibling.remove(); i.remove(); updStat(); pushUndo(); autoSaveTitle()}
 function uploadTxt(e){
   const file=e.target.files[0]; if(!file) return;
   const r=new FileReader();
@@ -2225,10 +2292,36 @@ async function insertV(btn,size){
     img.scrollIntoView({behavior:'smooth',block:'center'});
   },100);
 }
-function handleVisionDrop(e){
+// Vision: auf die Bildfläche gezogen → eigene Karte (Bearbeiten, Analyse); auf die Steuerung → Referenz
+function initVisDrop(){
+  const zones=[[document.getElementById('varea'),false],[document.querySelector('#vision-panel .vctrl'),true]];
+  zones.forEach(([z,asRef])=>{
+    z.addEventListener('dragover',e=>{if([...e.dataTransfer.types].includes('Files')){e.preventDefault();z.style.outline='2px dashed var(--gold)';z.style.outlineOffset='-6px'}});
+    z.addEventListener('dragleave',e=>{if(!z.contains(e.relatedTarget))z.style.outline=''});
+    z.addEventListener('drop',e=>{z.style.outline='';e.stopPropagation();handleVisionDrop(e,asRef)});
+  });
+  // Nirgends sonst darf der Browser ein abgelegtes Bild selbst öffnen (sonst verlässt man die App)
+  const isFile=e=>[...(e.dataTransfer?.types||[])].includes('Files');
+  window.addEventListener('dragover',e=>{if(isFile(e))e.preventDefault()});
+  window.addEventListener('drop',e=>{if(isFile(e))e.preventDefault()});
+}
+async function addUploadCard(file){
+  let url=await blobToDataUrl(file); try{url=(await shrinkImg(url,1536)).url}catch(e){}
+  const area=document.getElementById('varea'), ph=area.querySelector('.empty'); if(ph) ph.remove();
+  const name=file.name.replace(/\.[^.]+$/,'')||'Bild';
+  const card=document.createElement('div'); card.className='vcard';
+  card.innerHTML='<div class="vimg"><img></div><div class="vbody"><div class="vbadge">Eigenes Bild</div><div class="vpt"></div><div class="vbtns"></div></div>';
+  fitVImg(card.querySelector('.vimg'),card.querySelector('img'));
+  card.querySelector('img').src=url; card.querySelector('.vpt').textContent=name;
+  card.dataset.prompt=name; card.dataset.url=url;
+  area.prepend(card); addVBtns(card); visTrack(card);
+  setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'start'}),50);
+}
+function handleVisionDrop(e,asRef){
   e.preventDefault();
-  const files=Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/'));
+  const files=imgFiles(e.dataTransfer);
   if(!files.length) return;
+  if(!asRef){files.forEach(addUploadCard);return}
   files.forEach(file=>{
     const r=new FileReader();
     r.onload=async ev=>{
