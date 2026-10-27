@@ -18,12 +18,11 @@ export default async function handler(req, res) {
     g31:  { type: 'google', model: 'gemini-3.1-flash-tts-preview', voiceName: 'Kore',    label: 'Kore (alt)' },
     g38:  { type: 'google', model: 'gemini-3.8-flash-tts',         voiceName: 'Kore',    label: 'Kore' },
     g38l: { type: 'google', model: 'gemini-3.8-flash-lite-tts',    voiceName: 'Sulafat', label: 'Sulafat' },
-    // ElevenLabs-Stimmen aus der Bibliothek, deutsche Fassung, über ihre Voice-ID
+    // ElevenLabs-Stimme aus der Bibliothek, deutsche Fassung, über ihre Voice-ID
     elj:  { type: 'eleven', model: 'fal-ai/elevenlabs/tts/turbo-v2.5', voiceName: 'DsY1TMHF6R6uylNq96bs', label: 'Joy' },
-    ele:  { type: 'eleven', model: 'fal-ai/elevenlabs/tts/turbo-v2.5', voiceName: 'nZpMT2RjIpaat0IaA7Sd', label: 'Eret' },
   };
   // Gewählte Stimme zuerst, dann Ersatz in der Reihenfolge der Lieblingsstimmen
-  const order = [voice, 'g38l', 'g38', 'g31', 'elj', 'ele'].filter((v, i, a) => voices[v] && a.indexOf(v) === i);
+  const order = [voice, 'g38l', 'g38', 'g31', 'elj'].filter((v, i, a) => voices[v] && a.indexOf(v) === i);
   const input = text.substring(0, 5000);
 
   // PCM → WAV (24 kHz, mono, 16 Bit)

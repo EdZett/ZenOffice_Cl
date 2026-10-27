@@ -181,10 +181,14 @@ body.light .tbb.zen-hear{background:rgba(80,140,80,.12);color:#3a7a50;border-col
 .edwrap.drop{outline:2px dashed var(--gold);outline-offset:-8px}
 /* Leiste für Bildgröße im Text (erscheint beim Antippen eines Bildes) */
 #imgbar{position:absolute;z-index:30;display:none;gap:4px;padding:5px;background:var(--bg2);border:1px solid var(--gold);border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
-#imgbar.on{display:flex}
+#imgbar.on{display:flex;flex-wrap:wrap;max-width:calc(100% - 8px);justify-content:center}
+@media (max-width:480px){#imgbar button{padding:5px 8px;font-size:12px}#imgbar .sep{display:none}}
 #imgbar button{border:1px solid var(--border);background:var(--bg3);color:var(--text);border-radius:16px;padding:6px 11px;font-size:13px;font-weight:600;cursor:pointer}
 #imgbar button.on{background:var(--gold);color:#1a1410;border-color:var(--gold)}
 #imgbar button.del{color:var(--rose)}
+#imgbar button.al{padding:5px 8px;display:flex;align-items:center}
+#imgbar .sep{width:1px;background:var(--border);margin:3px 2px}
+#editor::after{content:'';display:block;clear:both}
 #imggrip{position:absolute;z-index:31;display:none;width:20px;height:20px;border-radius:50%;background:var(--gold);border:2px solid var(--bg);cursor:nwse-resize;touch-action:none}
 #imggrip.on{display:block}
 
@@ -571,7 +575,6 @@ body.light select option:checked{color:#fff}
           <option value="g38l">Sulafat</option>
           <option value="g38">Kore</option>
           <option value="elj">Joy</option>
-          <option value="ele">Eret</option>
         </select>
         <a class="tbb ic" id="audio-dl" style="display:none;text-decoration:none" title="Vorgelesenen Text als Audio herunterladen" aria-label="Audio herunterladen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>
         <button class="tbb zen-dic" id="dicbtn" onclick="toggleDic()" style="display:none"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Diktat</button>
@@ -589,7 +592,7 @@ body.light select option:checked{color:#fff}
       <button class="tools-show" onclick="showTools()" aria-label="Werkzeuge einblenden">▾ Werkzeuge</button>
       <div class="edwrap">
         <div id="editor" contenteditable="true" spellcheck="true" oninput="onEdit()" onclick="if(dictating)stopDic()"></div>
-        <div id="imgbar" onmousedown="event.preventDefault()"><button onclick="imgSize(25)">S</button><button onclick="imgSize(50)">M</button><button onclick="imgSize(75)">L</button><button onclick="imgSize(100)">Voll</button><button class="del" onclick="imgDel()" title="Bild entfernen">✕</button></div>
+        <div id="imgbar" onmousedown="event.preventDefault()"><button onclick="imgSize(25)">S</button><button onclick="imgSize(50)">M</button><button onclick="imgSize(75)">L</button><button onclick="imgSize(100)">Voll</button><span class="sep"></span><button class="al" data-al="l" onclick="imgAlign('l')" title="Links – Text rechts daneben"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="8" height="8" rx="1"/><line x1="14" y1="6" x2="21" y2="6"/><line x1="14" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><button class="al" data-al="c" onclick="imgAlign('c')" title="Mittig – Text darüber und darunter"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="4" x2="21" y2="4"/><rect x="8" y="8" width="8" height="8" rx="1"/><line x1="3" y1="20" x2="21" y2="20"/></svg></button><button class="al" data-al="r" onclick="imgAlign('r')" title="Rechts – Text links daneben"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="13" y="5" width="8" height="8" rx="1"/><line x1="3" y1="6" x2="10" y2="6"/><line x1="3" y1="12" x2="10" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><span class="sep"></span><button class="del" onclick="imgDel()" title="Bild entfernen">✕</button></div>
         <div id="imgbox"></div><div id="imggrip" title="Ziehen, um die Größe zu ändern"></div>
         <div id="dicleg"><div class="dcdot"></div><span id="dicint"></span></div>
         <div id="undoinfo"></div>
@@ -1056,7 +1059,16 @@ function placeImgBar(){
   bar.style.left=Math.max(4,Math.min(r.left-wr.left,wr.width-bar.offsetWidth-4))+'px';
   grip.style.top=(top+r.height-12)+'px'; grip.style.left=(r.right-wr.left-12)+'px';
   const w=Math.round(parseFloat(selImgEl.style.width)||100);
-  bar.querySelectorAll('button:not(.del)').forEach(b=>b.classList.toggle('on',b.textContent===({25:'S',50:'M',75:'L',100:'Voll'})[w]));
+  const al=selImgEl.style.float==='left'?'l':selImgEl.style.float==='right'?'r':selImgEl.style.marginLeft==='auto'?'c':'';
+  bar.querySelectorAll('button.al').forEach(b=>b.classList.toggle('on',b.dataset.al===al));
+  bar.querySelectorAll('button:not(.del):not(.al)').forEach(b=>b.classList.toggle('on',b.textContent===({25:'S',50:'M',75:'L',100:'Voll'})[w]));
+}
+// Ausrichtung: links/rechts umfließt der Text das Bild, mittig steht es allein in der Zeile
+function imgAlign(a){
+  if(!selImgEl)return; const s=selImgEl.style;
+  s.float=a==='l'?'left':a==='r'?'right':'';
+  s.margin=a==='l'?'4px 18px 8px 0':a==='r'?'4px 0 8px 18px':'8px auto';
+  placeImgBar(); pushUndo(); autoSaveTitle();
 }
 function imgSize(p){if(!selImgEl)return; selImgEl.style.width=p+'%'; placeImgBar(); pushUndo(); autoSaveTitle()}
 function imgDel(){if(!selImgEl)return; const i=selImgEl; selImg(null); if(i.nextSibling?.tagName==='BR')i.nextSibling.remove(); i.remove(); updStat(); pushUndo(); autoSaveTitle()}
@@ -1107,18 +1119,50 @@ async function callGemini(model,prompt,cfg={}){
 // ═══════════════════════════════════════
 // TEXT AKTIONEN (Claude)
 // ═══════════════════════════════════════
+// Bilder überstehen KI-Änderungen: vorher durch Platzhalter [[BILD1]] … ersetzen, danach wieder einsetzen
+const IMG_HINT=' Platzhalter wie [[BILD1]] stehen für Bilder: Übernimm sie unverändert und lass sie an der inhaltlich passenden Stelle stehen.';
+function edTextWithImgs(ed){
+  const imgs=[...ed.querySelectorAll('img')];
+  const marks=imgs.map((img,i)=>{const t=document.createTextNode('[[BILD'+(i+1)+']]');img.replaceWith(t);return t});
+  const text=ed.innerText;
+  marks.forEach((t,i)=>t.replaceWith(imgs[i]));
+  return {text,imgs};
+}
+function setEdTextWithImgs(ed,r,imgs){
+  ed.innerText=r;
+  const used=new Set(), w=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT), nodes=[];
+  while(w.nextNode()) nodes.push(w.currentNode);
+  nodes.forEach(n=>{
+    const parts=n.nodeValue.split(/\[\[\s*BILD\s*(\d+)\s*\]\]/i); if(parts.length<2) return;
+    const frag=document.createDocumentFragment();
+    parts.forEach((p,i)=>{
+      if(i%2===0){if(p)frag.appendChild(document.createTextNode(p));return}
+      const img=imgs[+p-1]; if(img&&!used.has(img)){used.add(img);frag.appendChild(img)}
+    });
+    n.replaceWith(frag);
+  });
+  const lost=imgs.filter(i=>!used.has(i));
+  if(lost.length){lost.forEach(i=>{ed.appendChild(document.createElement('br'));ed.appendChild(i)});zoToast('Einige Bilder wurden ans Ende des Textes gesetzt')}
+}
+// Bilder, die in einer Markierung liegen, nach dem neuen Text wieder einsetzen
+function replaceRangeKeepImgs(rng,frag){
+  const imgs=[...rng.cloneContents().querySelectorAll('img')];
+  rng.deleteContents(); const end=frag.lastChild; rng.insertNode(frag);
+  if(end) imgs.reverse().forEach(i=>end.after(i));
+}
 async function aiTxt(instruction){
   const ed=document.getElementById('editor');
   const sel=window.getSelection(); const selTxt=sel?.toString();
-  const text=selTxt||ed.innerText;
+  const all=selTxt?null:edTextWithImgs(ed);
+  const text=selTxt||all.text;
   if(!text.trim()){alert('Bitte zuerst Text schreiben.');return}
   pushUndo(); showAI('Text wird bearbeitet…');
   ed.style.opacity='.4'; ed.contentEditable='false';
   try{
     const r=await callClaude('Aufgabe: '+instruction+'\n\nText:\n'+text,
-      'Du bist ein professioneller Textassistent. Gib NUR den fertigen Text zurück – keine Vorbemerkungen, Anführungszeichen oder Erklärungen.');
-    if(selTxt&&sel.rangeCount>0){const rng=sel.getRangeAt(0);rng.deleteContents();rng.insertNode(document.createTextNode(r))}
-    else ed.innerText=r;
+      'Du bist ein professioneller Textassistent. Gib NUR den fertigen Text zurück – keine Vorbemerkungen, Anführungszeichen oder Erklärungen.'+IMG_HINT);
+    if(selTxt&&sel.rangeCount>0) replaceRangeKeepImgs(sel.getRangeAt(0),document.createTextNode(r));
+    else setEdTextWithImgs(ed,r,all.imgs);
     updStat(); pushUndo(); autoSaveTitle();
   }catch(e){alert('Fehler: '+e.message)}
   finally{ed.style.opacity='1';ed.contentEditable='true';hideAI()}
@@ -1133,8 +1177,8 @@ const STOP_SVG='<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:cu
 // Gewählte Vorlese-Stimme (wird im Browser gemerkt)
 let ttsVoice='g38l';
 try{ttsVoice=localStorage.getItem('zo_voice')||'g38l'}catch(e){}
-if(ttsVoice==='elm') ttsVoice='elj'; // Brian wurde durch Joy ersetzt
-if(!['g38l','g38','elj','ele'].includes(ttsVoice)) ttsVoice='g38l'; // früher gewählte, inzwischen entfernte Stimmen
+if(ttsVoice==='elm'||ttsVoice==='ele') ttsVoice='elj'; // Brian und Everett wurden durch Joy ersetzt
+if(!['g38l','g38','elj'].includes(ttsVoice)) ttsVoice='g38l'; // früher gewählte, inzwischen entfernte Stimmen
 function setVoice(v){ttsVoice=v;try{localStorage.setItem('zo_voice',v)}catch(e){}}
 document.addEventListener('DOMContentLoaded',()=>{const s=document.getElementById('voicesel');if(s)s.value=ttsVoice});
 
@@ -1339,8 +1383,8 @@ function openLang(){document.getElementById('lang-ovl').style.display='flex'}
 async function doTrans(lang){
   closeM('lang-ovl');
   const ed=document.getElementById('editor');
-  const text=ed.innerText.trim();
-  if(!text){alert('Bitte zuerst Text schreiben.');return}
+  const all=edTextWithImgs(ed), text=all.text.trim();
+  if(!text.replace(/\[\[BILD\d+\]\]/g,'').trim()){alert('Bitte zuerst Text schreiben.');return}
   pushUndo();
   showAI('Gemini übersetzt…');
   ed.style.opacity='.4'; ed.contentEditable='false';
@@ -1349,7 +1393,7 @@ async function doTrans(lang){
     if(true){
       result=await callGemini(
         'gemini-1.5-pro',
-        `Übersetze den folgenden Text vollständig und natürlich ins ${lang}. Gib NUR die fertige Übersetzung zurück, ohne Anmerkungen, Einleitungen oder Erklärungen:\n\n${text}`,
+        `Übersetze den folgenden Text vollständig und natürlich ins ${lang}. Gib NUR die fertige Übersetzung zurück, ohne Anmerkungen, Einleitungen oder Erklärungen.${IMG_HINT}\n\n${text}`,
         {temperature:0.1,topP:0.95}
       );
     }
@@ -1357,10 +1401,10 @@ async function doTrans(lang){
       // Fallback: Claude
       result=await callClaude(
         `Übersetze ins ${lang}. Nur die Übersetzung:\n\n${text}`,
-        'Professioneller Übersetzer. Nur die Übersetzung.'
+        'Professioneller Übersetzer. Nur die Übersetzung.'+IMG_HINT
       );
     }
-    ed.innerText=result; updStat(); pushUndo(); autoSaveTitle();
+    setEdTextWithImgs(ed,result,all.imgs); updStat(); pushUndo(); autoSaveTitle();
   }catch(e){alert('Übersetzungsfehler: '+e.message)}
   finally{ed.style.opacity='1';ed.contentEditable='true';hideAI()}
 }
@@ -1510,24 +1554,21 @@ async function runKi(mode){
   }
   // ÄNDERN
   const rng=(lastEdRange&&!lastEdRange.collapsed&&lastEdRange.toString().trim()&&ed.contains(lastEdRange.commonAncestorContainer))?lastEdRange:null;
-  const text=rng?rng.toString():ed.innerText;
+  const all=rng?null:edTextWithImgs(ed);
+  const text=rng?rng.toString():all.text;
   if(!text.trim()){alert('Bitte zuerst Text schreiben oder markieren.');return}
   pushUndo(); showAI('Text wird geändert…');
   ed.style.opacity='.4'; ed.contentEditable='false';
   try{
     const r=await callClaude('Anweisung: '+cmd+'\n\nText:\n'+text,
-      'Du bist ein Texteditor. Setze die Anweisung vollständig und erkennbar um – auch wenn dafür Sätze umformuliert, ergänzt, umgestellt oder gestrichen werden müssen. Inhaltliche Wünsche (z. B. „mach deutlich, dass …“) setzt du sinngemäß im Text um. Was die Anweisung nicht betrifft, bleibt in Stil und Inhalt erhalten. Gib NUR den fertigen Text zurück – keine Vorbemerkungen, keine Anführungszeichen, keine Erklärungen.',8000);
+      'Du bist ein Texteditor. Setze die Anweisung vollständig und erkennbar um – auch wenn dafür Sätze umformuliert, ergänzt, umgestellt oder gestrichen werden müssen. Inhaltliche Wünsche (z. B. „mach deutlich, dass …“) setzt du sinngemäß im Text um. Was die Anweisung nicht betrifft, bleibt in Stil und Inhalt erhalten. Gib NUR den fertigen Text zurück – keine Vorbemerkungen, keine Anführungszeichen, keine Erklärungen.'+IMG_HINT,8000);
     if(!r) throw new Error('Keine Antwort erhalten');
     // Hat die KI praktisch nichts verändert, nicht still „erledigt“ melden
     const norm=s=>s.replace(/\s+/g,' ').trim();
     if(norm(r)===norm(text)){zoToast('Die KI hat den Text nicht verändert – formuliere die Anweisung konkreter oder wähle oben die Stufe Flash/Pro.');return}
     if(lastClaudeStop==='max_tokens') throw new Error('Der Text ist zu lang für eine Änderung am Stück. Dein Text wurde nicht verändert – markiere bitte einen Teil und versuche es erneut.');
-    if(rng){rng.deleteContents();rng.insertNode(textToFragment(r))}
-    else{
-      const imgs=[...ed.querySelectorAll('img')].map(i=>i.outerHTML);
-      ed.innerText=r;
-      if(imgs.length){ed.insertAdjacentHTML('beforeend',imgs.join('<br>'));zoToast('Bilder wurden ans Ende des Textes gesetzt')}
-    }
+    if(rng) replaceRangeKeepImgs(rng,textToFragment(r));
+    else setEdTextWithImgs(ed,r,all.imgs);
     lastEdRange=null; inp.value='';
     updStat(); pushUndo(); onEdit();
     zoToast('✓ Text geändert – mit „Zurück“ rückgängig machen');

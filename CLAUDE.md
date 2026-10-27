@@ -57,8 +57,8 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 - Vorlesen (`ttsVoice`, localStorage `zo_voice`), Auswahl im Feld neben „Vorlesen“:
   - `g38l` Sulafat 3.8 Lite: **Standard**, Lieblingsstimme des Nutzers
   - `g38` Kore 3.8
-  - `elj` ElevenLabs Joy und `ele` ElevenLabs Everett (in der App „Eret“, kürzer), deutsche Fassungen aus der Stimmenbibliothek, per Voice-ID über fal `elevenlabs/tts/turbo-v2.5`. Sie ersetzen seit 2026-10-27 Brian (`elm`; gespeicherte Wahl wird zu Joy).
-  - Ersatzkette: gewählte Stimme, g38l, g38, g31 (Kore 3.1, nur noch stiller Ersatz), elj, ele. Die Browserstimme kommt nur als allerletzter Notbehelf.
+  - `elj` ElevenLabs Joy, deutsche Fassung aus der Stimmenbibliothek, per Voice-ID `DsY1TMHF6R6uylNq96bs` über fal `elevenlabs/tts/turbo-v2.5`. Ersetzt seit 2026-10-27 Brian (`elm`); Everett (`ele`) wurde auf Wunsch wieder entfernt. Gespeicherte alte Wahl wird zu Joy. Der Nutzer will zwei Frauenstimmen und eine Männerstimme.
+  - Ersatzkette: gewählte Stimme, g38l, g38, g31 (Kore 3.1, nur noch stiller Ersatz), elj. Die Browserstimme kommt nur als allerletzter Notbehelf.
 - Speicher im Browser: localStorage `zo_prov` (Bildprogramm), `zo_voice`, `zo_projs`. Projekte und Bilder liegen in IndexedDB `zenoffice`.
 
 ## 3. Kernelemente & Anker-Code (nicht ohne Not ändern)
@@ -105,7 +105,8 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 - **Auf allen Geräten gleich:** Enter im KI-Feld löst nichts aus (`kiEnter`, nur Hinweis bzw. Tastatur schließen). Der Nutzer will keine Unterschiede zwischen PC, Handy und Tablet bei Wissen/Ändern.
 - Ändern: Die Anweisung an Claude verlangt vollständige Umsetzung (nicht „verändere sonst nichts“). Bleibt der Text unverändert, kommt ein Hinweis statt einer falschen Erfolgsmeldung.
 - Touch-Geräte: Diktat ausgeblendet (schreibt dort Wörter mehrfach). Werkzeugleiste 46 px, runde Symbolknöpfe 57 px (nach Wunsch 20 % kleiner als zuerst). Sie blendet sich beim Runterscrollen aus und kommt per Wisch nach unten oder Knopf „▾ Werkzeuge“ zurück. `keepAppInView()` und `interactive-widget=resizes-content` verhindern, dass die Tastatur die App aus dem Bild schiebt.
-- Bilder im Text (`insertEdImg`): per Importieren, Hineinziehen oder Einfügen (Strg+V), auf 1600 px verkleinert, zunächst 50 % breit. Antippen zeigt die Leiste `#imgbar` (S 25 % / M 50 % / L 75 % / Voll, ✕) und einen Ziehpunkt `#imggrip` für freie Größe; der Rahmen `#imgbox` liegt außerhalb des Textes, damit nichts davon mitgespeichert wird.
+- Bilder im Text (`insertEdImg`): per Importieren, Hineinziehen oder Einfügen (Strg+V), auf 1600 px verkleinert, zunächst 50 % breit. Antippen zeigt die Leiste `#imgbar` (S 25 % / M 50 % / L 75 % / Voll, ✕) und einen Ziehpunkt `#imggrip` für freie Größe sowie Ausrichtung links/mittig/rechts (`imgAlign`, links/rechts per `float`, Text umfließt das Bild; mittig steht es allein, beidseitiges Umfließen kann HTML nicht); der Rahmen `#imgbox` liegt außerhalb des Textes, damit nichts davon mitgespeichert wird.
+- KI-Textänderungen (Optimieren, Stil, Übersetzen, Ändern) behalten Bilder: `edTextWithImgs` ersetzt sie durch Platzhalter `[[BILD1]]`, `setEdTextWithImgs` setzt sie danach wieder ein (fehlende ans Ende), `IMG_HINT` sagt der KI, sie stehen zu lassen. Bei Markierungen `replaceRangeKeepImgs`.
 - `#dtitle` zeigt im Textbereich den Platzhalter „Textname…“.
 - Werkzeugleiste: auf dem PC eine Reihe, auf dem Handy **zwei Reihen**, die gemeinsam seitlich wischen (`.tbi`/`.tbr`). Alle Funktionen bleiben erhalten.
 
