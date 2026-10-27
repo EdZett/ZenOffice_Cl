@@ -949,8 +949,17 @@ function doAutoSave(){
   const idx=curTextId?projs.findIndex(p=>p.id===curTextId):-1;
   const proj={id:curTextId||newId(),title,html:ed.innerHTML,date:new Date().toISOString(),type:'text'};
   if(idx>=0){proj.archived=projs[idx].archived;projs[idx]=proj}else projs.unshift(proj);
-  curTextId=proj.id;
+  curTextId=proj.id; rememberText(proj.id);
   trimProjs(projs); setProjs(projs); renderProjs();
+}
+// Zuletzt bearbeiteten Text merken und beim nächsten Start (auch nach einem ungewollten Neuladen) wieder öffnen
+function rememberText(id){try{id?localStorage.setItem('zo_lasttext',id):localStorage.removeItem('zo_lasttext')}catch(e){}}
+function restoreLastText(){
+  let id=null; try{id=localStorage.getItem('zo_lasttext')}catch(e){}
+  const ed=document.getElementById('editor'); if(!id||ed.innerText.trim()) return;
+  const p=getProjs().find(x=>x.id===id&&x.type==='text'); if(!p) return;
+  document.getElementById('dtitle').value=p.title; panelTitles.text=p.title;
+  ed.innerHTML=p.html; curTextId=p.id; updStat(); pushUndo();
 }
 function updStat(){
   const t=document.getElementById('editor').innerText||'';
@@ -1055,6 +1064,19 @@ if(!['g38l','g38','elm'].includes(ttsVoice)) ttsVoice='g38l'; // früher gewähl
 function setVoice(v){ttsVoice=v;try{localStorage.setItem('zo_voice',v)}catch(e){}}
 document.addEventListener('DOMContentLoaded',()=>{const s=document.getElementById('voicesel');if(s)s.value=ttsVoice});
 
+// Audio speichern, ohne die App zu verlassen: Datei erst holen, dann als Download anbieten.
+// (Ein direkter Link auf fremde Server – z. B. ElevenLabs – öffnete sonst den Player im App-Fenster)
+async function downloadAudio(src,name){
+  try{
+    const b=await (await fetch(src)).blob();
+    const o=URL.createObjectURL(b), a=document.createElement('a');
+    a.href=o; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(o),4000);
+    zoToast('✓ Audio gespeichert');
+  }catch(e){
+    window.open(src,'_blank','noopener'); // Notlösung: eigenes Fenster, die App bleibt offen
+  }
+}
 async function toggleSpeak(){
   const btn=document.getElementById('spkbtn');
   const stat=document.getElementById('sspk');
@@ -1101,8 +1123,9 @@ async function toggleSpeak(){
     // Audio-Download Button anzeigen
     const dlBtn=document.getElementById('audio-dl');
     if(dlBtn){
-      dlBtn.href=src;
-      dlBtn.download=d.audioUrl?'vorlesen.mp3':'vorlesen.wav';
+      dlBtn.removeAttribute('href');
+      const name=d.audioUrl?'vorlesen.mp3':'vorlesen.wav';
+      dlBtn.onclick=e=>{e.preventDefault(); downloadAudio(src,name)};
       dlBtn.style.display='flex';
       ttsAudio.onended=()=>{
         speaking=false;btn.innerHTML=PLAY_SVG;stat.innerHTML='';ttsAudio=null;
@@ -1461,7 +1484,7 @@ function deleteText(){
     if(confirm('Gesamten Text löschen?')){
       pushUndo();
       ed.innerHTML='';
-      curTextId=null;
+      curTextId=null; rememberText(null);
       updStat();
     }
   }
@@ -1555,6 +1578,7 @@ async function initProjs(){
   }
   PROJS.forEach(p=>{if(!p.id)p.id=newId()});
   renderProjs();
+  restoreLastText();
 }
 function blobToDataUrl(b){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(b)})}
 async function urlToBlob(url){const r=await fetch(url);if(!r.ok)throw new Error('Bild nicht ladbar');return await r.blob()}
@@ -1615,7 +1639,7 @@ async function loadProj(i){
     swP('text',document.getElementById('n-text'));
     document.getElementById('dtitle').value=p.title; panelTitles.text=p.title;
     document.getElementById('editor').innerHTML=p.html;
-    curTextId=p.id; updStat(); pushUndo();
+    curTextId=p.id; rememberText(p.id); updStat(); pushUndo();
   } else if(p.type==='vision'){
     swP('vision',document.getElementById('n-vision'));
     document.getElementById('dtitle').value=p.title; panelTitles.vision=p.title;
@@ -1642,7 +1666,7 @@ function delProj(e,i){
   const projs=getProjs().slice(); const removed=projs.splice(i,1)[0];
   if(removed){
     if(removed.imgKey&&idbOk) idbDel('images',removed.imgKey).catch(()=>{});
-    if(removed.id&&removed.id===curTextId) curTextId=null;
+    if(removed.id&&removed.id===curTextId){curTextId=null; rememberText(null)}
   }
   setProjs(projs); renderProjs();
 }
