@@ -1569,7 +1569,10 @@ function keepAppInView(){
 // ein kurzer Wisch nach unten holt sie zurück. Scrollen allein schaltet nichts um (sonst Flimmern).
 function initToolsAutoHide(){
   const panel=document.getElementById('text-panel'), ed=document.getElementById('editor'), wrap=panel.querySelector('.edwrap');
-  ed.addEventListener('input',()=>{if(!panel.classList.contains('tools-hidden'))hideTools()});
+  const coarse=matchMedia('(pointer:coarse)');
+  ed.addEventListener('input',()=>{if(coarse.matches&&!panel.classList.contains('tools-hidden'))hideTools()});
+  // Wechselt das Gerät auf Maus (z. B. Tablet mit Tastatur), Leiste sofort zurückholen – ohne Finger gibt es keinen Wisch
+  coarse.addEventListener?.('change',()=>{if(!coarse.matches){showTools();document.body.classList.remove('touch')}else document.body.classList.add('touch')});
   let y0=null;
   wrap.addEventListener('touchstart',e=>{y0=e.touches.length===1?e.touches[0].clientY:null},{passive:true});
   wrap.addEventListener('touchmove',e=>{if(y0!==null&&e.touches[0].clientY-y0>40){y0=null;showTools()}},{passive:true});
