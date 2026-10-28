@@ -1,5 +1,5 @@
 // ZenOffice Claude Edition – Service Worker
-const CACHE = 'zenoffice-claude-v3';
+const CACHE = 'zenoffice-claude-v4';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -30,17 +30,17 @@ self.addEventListener('fetch', e => {
     return;
   }
   
-  // App-Shell: Cache first, dann Network
+  // App-Seite: immer zuerst frisch aus dem Netz, damit nach jeder Veröffentlichung sofort die neue
+  // Version erscheint (früher „erst Speicher“: man sah nach Updates zunächst die alte Fassung).
+  // Der Speicher springt nur ein, wenn kein Netz da ist.
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const network = fetch(e.request).then(response => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE).then(cache => cache.put(e.request, clone));
-        }
-        return response;
-      });
-      return cached || network;
-    })
+    fetch(e.request).then(response => {
+      if (response.ok && e.request.method === 'GET') {
+        const clone = response.clone();
+        caches.open(CACHE).then(cache => cache.put(e.request, clone));
+      }
+      return response;
+    }).catch(() => caches.match(e.request).then(c => c || (e.request.mode === 'navigate' ? caches.match('/') : undefined))
+      .then(c => c || new Response('Offline', {status: 503})))
   );
 });

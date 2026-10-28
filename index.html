@@ -2535,6 +2535,9 @@ if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     // Nur auf echter Domain registrieren, nicht in Vorschau
     if(!location.hostname.includes('claudeusercontent')){
+      // Übernimmt ein neuer Service Worker (nach einer Veröffentlichung), einmal neu laden → sofort neueste Version
+      const hadOld=!!navigator.serviceWorker.controller; let reloaded=false;
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadOld&&!reloaded){reloaded=true;flushSave?.();location.reload()}});
       navigator.serviceWorker.register('/sw.js')
         .then(r=>console.log('SW registriert'))
         .catch(e=>console.warn('SW Fehler:',e));
