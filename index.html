@@ -919,7 +919,7 @@ function doUndo(){
   if(undoPtr>0){
     undoPtr--;
     const s=undoStack[undoPtr];
-    document.getElementById('editor').innerHTML=s.h;
+    document.getElementById('editor').innerHTML=cleanHtml(s.h);
     document.getElementById('dtitle').value=s.t;
     updStat(); autoSaveTitle();
     document.getElementById('undoinfo').textContent=undoPtr>0?'↩ '+undoPtr+' Schritt'+(undoPtr>1?'e':'')+' verfügbar':'';
@@ -929,7 +929,7 @@ function doRedo(){
   if(undoPtr<undoStack.length-1){
     undoPtr++;
     const s=undoStack[undoPtr];
-    document.getElementById('editor').innerHTML=s.h;
+    document.getElementById('editor').innerHTML=cleanHtml(s.h);
     document.getElementById('dtitle').value=s.t;
     updStat(); autoSaveTitle();
   }
@@ -988,7 +988,7 @@ function restoreLastText(){
   const ed=document.getElementById('editor'); if(!id||ed.innerText.trim()) return;
   const p=getProjs().find(x=>x.id===id&&x.type==='text'); if(!p) return;
   document.getElementById('dtitle').value=p.title; panelTitles.text=p.title;
-  ed.innerHTML=p.html; curTextId=p.id; updStat(); pushUndo();
+  ed.innerHTML=cleanHtml(p.html); curTextId=p.id; updStat(); pushUndo();
 }
 function updStat(){
   const t=document.getElementById('editor').innerText||'';
@@ -1017,6 +1017,48 @@ async function insertEdImg(file,rng){
   else{ed.appendChild(img);ed.appendChild(document.createElement('br'))}
   updStat(); pushUndo(); autoSaveTitle(); selImg(img);
 }
+// Fremdes HTML säubern: nur einfache Auszeichnung (fett, kursiv, Absätze, Listen, Tabellen, Bilder) bleibt,
+// alle Farben, Größen, festen Positionen und Rollbereiche fallen weg
+function cleanHtml(html){
+  const t=document.createElement('template'); t.innerHTML=html||'';
+  const DROP=/^(SCRIPT|STYLE|META|LINK|TITLE|IFRAME|OBJECT|EMBED|SVG|BUTTON|INPUT|TEXTAREA|SELECT|NOSCRIPT|TEMPLATE|FORM|VIDEO|AUDIO|CANVAS)$/;
+  const KEEP=/^(B|STRONG|I|EM|U|S|BR|P|DIV|UL|OL|LI|H1|H2|H3|H4|BLOCKQUOTE|PRE|CODE|A|IMG|TABLE|THEAD|TBODY|TR|TD|TH|HR|SUB|SUP)$/;
+  const STY=/^(IMG|TABLE|TR|TD|TH)$/, BAD=/^(position|inset|top|left|right|bottom|z-index|overflow.*|max-height|min-height|height|transform|opacity|visibility|pointer-events)$/;
+  const cl=n=>{for(const c of [...n.childNodes]){
+    if(c.nodeType===8){c.remove();continue}
+    if(c.nodeType!==1) continue;
+    const tg=c.tagName.toUpperCase();
+    if(DROP.test(tg)){c.remove();continue}
+    cl(c);
+    // Fett/kursiv/unterstrichen, das nur über das Aussehen festgelegt ist, als echte Auszeichnung behalten
+    const st=c.style||{}, wrapIn=(t2)=>{const w=document.createElement(t2);w.append(...c.childNodes);c.appendChild(w)};
+    if(!/^(B|STRONG|H\d)$/.test(tg)&&(st.fontWeight==='bold'||+st.fontWeight>=600)) wrapIn('b');
+    if(!/^(I|EM)$/.test(tg)&&st.fontStyle==='italic') wrapIn('i');
+    if(tg!=='U'&&/underline/.test(st.textDecoration||st.textDecorationLine||'')) wrapIn('u');
+    if(!KEEP.test(tg)){c.replaceWith(...c.childNodes);continue}
+    for(const a of [...c.attributes]){
+      const k=a.name;
+      if(k==='style'&&STY.test(tg)){[...c.style].forEach(pr=>{if(BAD.test(pr))c.style.removeProperty(pr)});continue}
+      if(k==='src'&&tg==='IMG'&&/^(data:image\/|https?:)/i.test(a.value)) continue;
+      if(k==='href'&&tg==='A'&&/^(https?:|mailto:)/i.test(a.value)) continue;
+      if((k==='colspan'||k==='rowspan')&&/^T[DH]$/.test(tg)) continue;
+      c.removeAttribute(k);
+    }
+    if(tg==='IMG'&&!c.getAttribute('src')) c.remove();
+  }};
+  cl(t.content);
+  const d=document.createElement('div'); d.appendChild(t.content); return d.innerHTML;
+}
+function insertHtmlAtSel(html){
+  const ed=document.getElementById('editor'), sel=window.getSelection();
+  ed.focus(); pushUndo();
+  let rng=sel.rangeCount&&ed.contains(sel.anchorNode)?sel.getRangeAt(0):null;
+  if(!rng){rng=document.createRange();rng.selectNodeContents(ed);rng.collapse(false)}
+  const t=document.createElement('template'); t.innerHTML=html; const last=t.content.lastChild;
+  rng.deleteContents(); rng.insertNode(t.content);
+  if(last){const r=document.createRange();r.setStartAfter(last);r.collapse(true);sel.removeAllRanges();sel.addRange(r)}
+  onEdit();
+}
 function imgFiles(dt){return Array.from(dt?.files||[]).filter(f=>f.type.startsWith('image/'))}
 // Ziehen & Einfügen im Text
 function initEdDrop(){
@@ -1032,8 +1074,11 @@ function initEdDrop(){
     for(const f of files) await insertEdImg(f,rng);
   });
   ed.addEventListener('paste',async e=>{
-    const files=imgFiles(e.clipboardData); if(!files.length) return;
-    e.preventDefault(); for(const f of files) await insertEdImg(f);
+    const files=imgFiles(e.clipboardData);
+    if(files.length){e.preventDefault(); for(const f of files) await insertEdImg(f); return}
+    // Text aus anderen Programmen (z. B. Google Keep) bringt eigenes Aussehen mit – nur Inhalt übernehmen
+    const html=e.clipboardData?.getData('text/html');
+    if(html){e.preventDefault(); insertHtmlAtSel(cleanHtml(html))}
   });
   // Bild antippen → Größenleiste; woanders hin → ausblenden
   ed.addEventListener('click',e=>{if(e.target.tagName==='IMG')selImg(e.target);else selImg(null)});
@@ -1775,7 +1820,7 @@ async function loadProj(i){
   if(p.type==='text'){
     swP('text',document.getElementById('n-text'));
     document.getElementById('dtitle').value=p.title; panelTitles.text=p.title;
-    document.getElementById('editor').innerHTML=p.html;
+    document.getElementById('editor').innerHTML=cleanHtml(p.html);
     curTextId=p.id; rememberText(p.id); updStat(); pushUndo();
   } else if(p.type==='vision'){
     swP('vision',document.getElementById('n-vision'));
