@@ -354,22 +354,21 @@ body.light{color-scheme:light}
 select option{background-color:var(--bg2);color:var(--text);font-weight:600}
 select option:checked{background-color:var(--gold);color:#1a1410}
 body.light select option:checked{color:#fff}
-/* Ausgeblendete Werkzeugleiste (nur Touch): kleiner Knopf oben holt sie zurück */
-.tools-show{display:none}
-#text-panel.tools-hidden .tb,#text-panel.tools-hidden .kibar{display:none}
-#text-panel.tools-hidden .tools-show{display:block;align-self:center;margin:6px auto;padding:7px 18px;border-radius:20px;border:1.5px solid rgba(201,169,110,.4);background:var(--bg2);color:var(--gold);font-family:var(--fn);font-size:15px;font-weight:600;flex-shrink:0;cursor:pointer}
+/* Nur Touch: beim Schreiben gleiten Werkzeug- und KI-Leiste nach oben weg, Wisch nach unten holt sie zurück */
+#tools{flex-shrink:0;transition:margin-top .28s ease}
+#text-panel.tools-hidden #tools{margin-top:calc(-1 * var(--toolsh,0px))}
 /* Handy und Tablet (Touch): Leiste 50 % größer, runde Symbolknöpfe nochmals 25 % größer */
 @media (pointer:coarse){
-  /* Wunsch des Nutzers: 20 % kleiner als die erste Vergrößerung (57/71 px → 46/57 px); KI-Leiste bleibt unverändert */
-  :root:root{--tbh:46px;--tbr:57px} /* doppelt, damit es die spätere Handy-Regel (44 px) schlägt */
-  .tb .tbb,.tb .tsel{font-size:17px}
-  .tb .tbb{padding:0 16px}
-  .tb .tbb svg{width:22px;height:22px}
-  .tb .tbb.ic{width:var(--tbr);height:var(--tbr);font-size:21px;border-radius:50%}
-  .tb .tbb.ic svg{width:24px;height:24px}
-  .tb .tsel{padding:0 11px;border-radius:24px}
-  .tb .tbb{border-radius:29px}
-  .tb,.tb .tbr{gap:6px}
+  /* Wunsch des Nutzers: zweimal 20 % kleiner (57/71 px → 46/57 px → 37/46 px); KI-Leiste bleibt unverändert */
+  :root:root{--tbh:37px;--tbr:46px} /* doppelt, damit es die spätere Handy-Regel (44 px) schlägt */
+  .tb .tbb,.tb .tsel{font-size:14px}
+  .tb .tbb{padding:0 13px}
+  .tb .tbb svg{width:18px;height:18px}
+  .tb .tbb.ic{width:var(--tbr);height:var(--tbr);font-size:17px;border-radius:50%}
+  .tb .tbb.ic svg{width:19px;height:19px}
+  .tb .tsel{padding:0 9px;border-radius:19px}
+  .tb .tbb{border-radius:23px}
+  .tb,.tb .tbr{gap:5px}
 }
 .tb .tsep{height:22px}
 /* KI-Eingabeleiste */
@@ -505,6 +504,7 @@ body.light select option:checked{color:#fff}
 
     <!-- TEXT -->
     <div class="panel on" id="text-panel">
+      <div id="tools">
       <div class="tb"><div class="tbi"><div class="tbr">
         <button class="tbb ic" onclick="doUndo()" title="Zurück (rückgängig)" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
         <button class="tbb ic" onclick="doRedo()" title="Vor (wiederholen)" id="redo-btn" aria-label="Vor"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
@@ -589,7 +589,7 @@ body.light select option:checked{color:#fff}
           <button class="kib kib-c" id="ki-aendern" onclick="runKi('aendern')" title="Ändern: wirkt auf den ganzen Text" aria-label="Ändern"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg></button>
         </div>
       </div>
-      <button class="tools-show" onclick="showTools()" aria-label="Werkzeuge einblenden">▾ Werkzeuge</button>
+      </div>
       <div class="edwrap">
         <div id="editor" contenteditable="true" spellcheck="true" oninput="onEdit()" onclick="if(dictating)stopDic()"></div>
         <div id="imgbar" onmousedown="event.preventDefault()"><button onclick="imgSize(25)">S</button><button onclick="imgSize(50)">M</button><button onclick="imgSize(75)">L</button><button onclick="imgSize(100)">Voll</button><span class="sep"></span><button class="al" data-al="l" onclick="imgAlign('l')" title="Links – Text rechts daneben"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="8" height="8" rx="1"/><line x1="14" y1="6" x2="21" y2="6"/><line x1="14" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><button class="al" data-al="c" onclick="imgAlign('c')" title="Mittig – Text darüber und darunter"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="4" x2="21" y2="4"/><rect x="8" y="8" width="8" height="8" rx="1"/><line x1="3" y1="20" x2="21" y2="20"/></svg></button><button class="al" data-al="r" onclick="imgAlign('r')" title="Rechts – Text links daneben"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="13" y="5" width="8" height="8" rx="1"/><line x1="3" y1="6" x2="10" y2="6"/><line x1="3" y1="12" x2="10" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><span class="sep"></span><button class="del" onclick="imgDel()" title="Bild entfernen">✕</button></div>
@@ -1465,25 +1465,19 @@ function keepAppInView(){
   const later=()=>{if(!raf) raf=requestAnimationFrame(fit)};
   vv.addEventListener('resize',later); vv.addEventListener('scroll',later); fit();
 }
-// Werkzeugleiste blendet sich beim Weiterlesen/-schreiben nach unten aus und kommt
-// beim Wischen nach unten (oder Tippen auf „Werkzeuge“) sofort zurück
-// Nur echtes Wischen mit dem Finger zählt: Tippen, Diktieren und die Tastatur verschieben den Text auch,
-// das darf die Leiste nicht auslösen – sonst schaukelt sich Aus- und Einblenden gegenseitig auf (Flimmern).
+// Nur Touch: Schreiben oder Diktieren im Text lässt Werkzeug- und KI-Leiste nach oben weggleiten,
+// ein kurzer Wisch nach unten holt sie zurück. Scrollen allein schaltet nichts um (sonst Flimmern).
 function initToolsAutoHide(){
-  const wrap=document.querySelector('#text-panel .edwrap'), panel=document.getElementById('text-panel'); if(!wrap) return;
-  let last=wrap.scrollTop, acc=0, finger=false, swipeEnd=0, calm=0;
-  wrap.addEventListener('touchstart',()=>{finger=true;acc=0},{passive:true});
-  const up=()=>{finger=false;swipeEnd=Date.now()};
-  wrap.addEventListener('touchend',up,{passive:true}); wrap.addEventListener('touchcancel',up,{passive:true});
-  wrap.addEventListener('scroll',()=>{
-    const y=wrap.scrollTop, d=y-last, now=Date.now(); last=y;
-    // nicht vom Finger (Nachschwung bis 600 ms zählt mit) oder direkt nach einem Umschalten → ignorieren
-    if(!(finger||now-swipeEnd<600)||now<calm){acc=0;return}
-    if((d>0)!==(acc>0)) acc=0; acc+=d;
-    const hidden=panel.classList.contains('tools-hidden');
-    if(hidden&&(y<20||acc<-40)){showTools();calm=now+500;acc=0}
-    else if(!hidden&&acc>80&&y>120){panel.classList.add('tools-hidden');calm=now+500;acc=0}
-  },{passive:true});
+  const panel=document.getElementById('text-panel'), ed=document.getElementById('editor'), wrap=panel.querySelector('.edwrap');
+  ed.addEventListener('input',()=>{if(!panel.classList.contains('tools-hidden'))hideTools()});
+  let y0=null;
+  wrap.addEventListener('touchstart',e=>{y0=e.touches.length===1?e.touches[0].clientY:null},{passive:true});
+  wrap.addEventListener('touchmove',e=>{if(y0!==null&&e.touches[0].clientY-y0>40){y0=null;showTools()}},{passive:true});
+}
+function hideTools(){
+  const panel=document.getElementById('text-panel');
+  panel.style.setProperty('--toolsh',document.getElementById('tools').offsetHeight+'px');
+  panel.classList.add('tools-hidden');
 }
 function showTools(){document.getElementById('text-panel').classList.remove('tools-hidden')}
 
