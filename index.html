@@ -109,7 +109,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
   font-size:12px;
   font-weight:500;
   letter-spacing:.03em;
-  transition:all .22s ease;
+  transition:background-color .22s ease,color .22s ease,border-color .22s ease;
   display:flex;align-items:center;gap:5px;
   font-family:var(--fn);white-space:nowrap;
 }
@@ -1451,20 +1451,38 @@ async function promptToVision(){
 }
 // ═══ Handy/Tablet: Tastatur darf die App nicht aus dem Bild schieben ═══
 // Die App folgt dem sichtbaren Bereich (über der Tastatur), statt von ihm verschoben zu werden
+// Nur eingreifen, wenn die Tastatur die Seite wirklich verdeckt (z. B. iPhone). Auf Android passt sich die
+// Seite schon selbst an (interactive-widget) – ständiges Nachsetzen ließ dort alles wackeln.
 function keepAppInView(){
   const vv=window.visualViewport; if(!vv) return;
-  const fit=()=>{document.body.style.height=vv.height+'px'; document.body.style.top=vv.offsetTop+'px'};
-  vv.addEventListener('resize',fit); vv.addEventListener('scroll',fit); fit();
+  let last='', raf=0;
+  const fit=()=>{raf=0;
+    const h=Math.round(vv.height), t=Math.round(vv.offsetTop), need=h<window.innerHeight-2||t>0;
+    const key=need?h+'/'+t:'';
+    if(key===last) return; last=key;
+    document.body.style.height=need?h+'px':''; document.body.style.top=need?t+'px':'';
+  };
+  const later=()=>{if(!raf) raf=requestAnimationFrame(fit)};
+  vv.addEventListener('resize',later); vv.addEventListener('scroll',later); fit();
 }
 // Werkzeugleiste blendet sich beim Weiterlesen/-schreiben nach unten aus und kommt
 // beim Wischen nach unten (oder Tippen auf „Werkzeuge“) sofort zurück
+// Nur echtes Wischen mit dem Finger zählt: Tippen, Diktieren und die Tastatur verschieben den Text auch,
+// das darf die Leiste nicht auslösen – sonst schaukelt sich Aus- und Einblenden gegenseitig auf (Flimmern).
 function initToolsAutoHide(){
   const wrap=document.querySelector('#text-panel .edwrap'), panel=document.getElementById('text-panel'); if(!wrap) return;
-  let last=wrap.scrollTop, acc=0;
+  let last=wrap.scrollTop, acc=0, finger=false, swipeEnd=0, calm=0;
+  wrap.addEventListener('touchstart',()=>{finger=true;acc=0},{passive:true});
+  const up=()=>{finger=false;swipeEnd=Date.now()};
+  wrap.addEventListener('touchend',up,{passive:true}); wrap.addEventListener('touchcancel',up,{passive:true});
   wrap.addEventListener('scroll',()=>{
-    const y=wrap.scrollTop, d=y-last; last=y;
+    const y=wrap.scrollTop, d=y-last, now=Date.now(); last=y;
+    // nicht vom Finger (Nachschwung bis 600 ms zählt mit) oder direkt nach einem Umschalten → ignorieren
+    if(!(finger||now-swipeEnd<600)||now<calm){acc=0;return}
     if((d>0)!==(acc>0)) acc=0; acc+=d;
-    if(y<20||acc<-25) showTools(); else if(acc>60&&y>80) panel.classList.add('tools-hidden');
+    const hidden=panel.classList.contains('tools-hidden');
+    if(hidden&&(y<20||acc<-40)){showTools();calm=now+500;acc=0}
+    else if(!hidden&&acc>80&&y>120){panel.classList.add('tools-hidden');calm=now+500;acc=0}
   },{passive:true});
 }
 function showTools(){document.getElementById('text-panel').classList.remove('tools-hidden')}
