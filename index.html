@@ -146,6 +146,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
   border-color:#9b2a45;
   animation:zen-rec 1.4s ease-in-out infinite;
 }
+/* Touch: Mikrofon als dicker runder Knopf über beide Reihen, bleibt beim seitlichen Wischen stehen */
+body.touch #text-panel .tb{display:flex;flex-wrap:nowrap;align-items:center;overflow:visible}
+body.touch #text-panel .tbi{flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+body.touch #text-panel .tbi::-webkit-scrollbar{display:none}
+@media(min-width:601px){body.touch #text-panel .tbi{display:flex;flex-wrap:wrap;align-items:center;gap:5px;overflow:visible}}
+.tbb.zen-dic.dicbig{width:86px;height:86px;min-width:86px;border-radius:50%;padding:0;justify-content:center;font-size:0;margin-left:8px;flex-shrink:0;border-width:2px}
+.tbb.zen-dic.dicbig svg{width:38px;height:38px}
+body.touch #dicleg{display:none!important}
+/* Gerade gesprochener Satz, solange er noch wächst */
+.dicl{color:var(--gold);background:rgba(201,169,110,.12);border-radius:4px}
 @keyframes zen-rec{0%,100%{box-shadow:0 0 0 0 rgba(155,42,69,.65)}50%{box-shadow:0 0 0 8px rgba(155,42,69,0)}}
 
 /* Löschen */
@@ -805,12 +815,13 @@ window.addEventListener('load',()=>{
   // Seite darf nie wegscrollen (sonst verschwinden Blatt-Symbol und Titelfeld)
   window.addEventListener('scroll',()=>{if(window.scrollY||window.scrollX)window.scrollTo(0,0)},{passive:true});
   ['main','content'].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener('scroll',()=>{if(e.scrollTop)e.scrollTop=0;if(e.scrollLeft)e.scrollLeft=0},{passive:true})});
-  // Diktat nur am PC: auf Handy und Tablet (Touch) schreibt die Browser-Erkennung Wörter mehrfach –
-  // dort nutzt man besser das Mikrofon der Tastatur
+  // Diktat auf allen Geräten; auf Handy/Tablet als großer runder Knopf rechts neben beiden Reihen
   const isTouch=matchMedia('(pointer:coarse)').matches;
-  if(!isTouch && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)){
-    document.getElementById('dicbtn').style.display='flex';
-    document.getElementById('diclang').style.display='flex';
+  if(isTouch) document.body.classList.add('touch');
+  if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
+    const db=document.getElementById('dicbtn');
+    db.style.display='flex'; document.getElementById('diclang').style.display='flex';
+    if(isTouch){db.classList.add('dicbig'); db.title='Diktat starten/beenden'; document.querySelector('#text-panel .tb').appendChild(db)}
   }
   if(isTouch){keepAppInView(); initToolsAutoHide()}
   // Schlüssel sind in Vercel - kein lokaler Check nötig
@@ -1367,18 +1378,14 @@ function startDicEngine(){
   const leg=document.getElementById('dicleg');
   const intEl=document.getElementById('dicint');
 
+  // Chrome auf Android liefert denselben Satz mehrfach und wachsend („Hallo“, „Hallo wie“ …).
+  // Darum: der Satz wächst live in einem Platzhalter und wird erst am Ende einmal festgeschrieben.
   recognition.onresult=function(e){
-    var fin='', int='';
-    for(var i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal) fin+=e.results[i][0].transcript;
-      else int+=e.results[i][0].transcript;
-    }
-    if(int) intEl.textContent=int;
-    if(fin){
-      ed.focus();
-      document.execCommand('insertText',false,fin+' ');
-      intEl.textContent=fin.trim();
-    }
+    const txt=dicText(e.results); if(!txt) return;
+    if(!dicSpan) dicNewSpan();
+    dicSpan.textContent=dicSpan.dataset.pre+(dicSpan.dataset.cap?txt[0].toUpperCase()+txt.slice(1):txt);
+    intEl.textContent=txt;
+    dicSpan.scrollIntoView({block:'nearest'});
   };
 
   recognition.onstart=function(){
@@ -1389,6 +1396,7 @@ function startDicEngine(){
   };
 
   recognition.onend=function(){
+    dicCommit();
     if(dictating){
       setTimeout(function(){
         if(dictating){
@@ -1408,15 +1416,54 @@ function startDicEngine(){
     }
   };
 
+  // Touch: Tastatur bleibt zu, solange diktiert wird
+  if(document.body.classList.contains('touch')){ed.setAttribute('inputmode','none'); ed.blur()}
   try{ recognition.start(); }
   catch(e){ console.warn('Diktat Start Fehler:',e); }
+}
+let dicSpan=null;
+// Alle Teilergebnisse einer Sitzung zu einem Text: wiederholte/wachsende Fassungen ersetzen die vorige
+function dicText(results){
+  const norm=t=>t.toLowerCase().replace(/[^\p{L}\p{N} ]/gu,'').replace(/\s+/g,' ').trim(), parts=[];
+  for(let i=0;i<results.length;i++){
+    const t=results[i][0].transcript.trim(); if(!t) continue;
+    if(parts.length){
+      const a=norm(parts[parts.length-1]), b=norm(t);
+      if(b.startsWith(a)){parts[parts.length-1]=t;continue}
+      if(a.startsWith(b)) continue;
+    }
+    parts.push(t);
+  }
+  return parts.join(' ');
+}
+// Platzhalter an der letzten Schreibstelle (sonst am Textende)
+function dicNewSpan(){
+  const ed=document.getElementById('editor'), sp=document.createElement('span'); sp.className='dicl';
+  let r=(lastEdRange&&ed.contains(lastEdRange.startContainer))?lastEdRange.cloneRange():null;
+  if(!r){r=document.createRange();r.selectNodeContents(ed)}
+  r.collapse(false);
+  const before=r.cloneRange(); before.setStart(ed,0);
+  const bt=before.toString();
+  sp.dataset.pre=/(^|\s)$/.test(bt)?'':' ';
+  if(/(^|[.!?:]\s*)$/.test(bt.trim())) sp.dataset.cap='1'; // Satzanfang groß
+  r.insertNode(sp); dicSpan=sp;
+}
+function dicCommit(){
+  if(!dicSpan) return;
+  const t=dicSpan.textContent, tn=document.createTextNode(t.trim()?t+' ':'');
+  dicSpan.replaceWith(tn); dicSpan=null;
+  const r=document.createRange(); r.setStartAfter(tn); r.collapse(true); lastEdRange=r;
+  if(t.trim()) onEdit();
 }
 
 function stopDic(){
   dictating=false;
+  dicCommit();
+  document.getElementById('editor').removeAttribute('inputmode');
   if(recognition){
     recognition.onend=null;
     recognition.onerror=null;
+    recognition.onresult=null;
     try{ recognition.stop(); }catch(e){}
     recognition=null;
   }
