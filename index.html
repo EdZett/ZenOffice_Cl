@@ -172,7 +172,7 @@ body.light .tbb.zen-hear{background:rgba(80,140,80,.12);color:#3a7a50;border-col
 
 /* EDITOR */
 .edwrap{flex:1;overflow-y:auto;display:flex;flex-direction:column;background:var(--bg);position:relative}
-#editor{flex:1;padding:32px 48px;font-size:14px;line-height:1.85;outline:none;color:var(--text);font-family:var(--fn);min-height:100%}
+#editor{flex:1;padding:32px 48px;font-size:15px;line-height:1.85;outline:none;color:var(--text);font-family:var(--fn);min-height:100%}
 #editor:empty::before{content:'Beginne zu schreiben…';color:var(--text3);font-style:italic;pointer-events:none;font-family:var(--fs);font-size:17px}
 #editor img{max-width:100%;height:auto;border-radius:8px;margin:8px 0;display:block;cursor:pointer}
 #imgbox{position:absolute;z-index:29;display:none;border:3px solid var(--gold);border-radius:10px;pointer-events:none}
@@ -531,10 +531,10 @@ body.light select option:checked{color:#fff}
         <button class="tbb ic" onclick="fmt('italic')" title="Kursiv" style="font-style:italic;font-family:'Cormorant Garamond',Georgia,serif;font-size:19px">I</button>
         <button class="tbb ic" onclick="fmt('underline')" title="Unterstrichen" style="text-decoration:underline">U</button>
         <div class="tsep"></div>
-        <select class="tsel" onchange="setFS(this.value)">
-          <option value="13px">Klein</option>
-          <option value="15px">Normal</option>
-          <option value="19px">Groß</option>
+        <select class="tsel" id="fssel" title="Schriftgröße" onchange="setFS(this.value)">
+          <option value="15px">Klein</option>
+          <option value="19px">Normal</option>
+          <option value="24px">Groß</option>
         </select>
         <select class="tsel" onchange="setFont(this.value)" title="Schriftart">
           <option value="system">Standard</option>
@@ -939,7 +939,13 @@ function doRedo(){
 // EDITOR
 // ═══════════════════════════════════════
 function fmt(c){document.execCommand(c)}
-function setFS(v){document.getElementById('editor').style.fontSize=v}
+// Schriftgröße: Klein 15 / Normal 19 / Groß 24 px (früher 13/15/19), Wahl wird gemerkt
+function setFS(v){document.getElementById('editor').style.fontSize=v; try{localStorage.setItem('zo_fs',v)}catch(e){}}
+document.addEventListener('DOMContentLoaded',()=>{
+  let v='15px'; try{v=localStorage.getItem('zo_fs')||v}catch(e){}
+  const sel=document.getElementById('fssel'); if(![...sel.options].some(o=>o.value===v)) v='15px';
+  sel.value=v; document.getElementById('editor').style.fontSize=v;
+});
 function setFont(v){
   const ed=document.getElementById('editor');
   const fonts={
@@ -1202,8 +1208,12 @@ async function toggleSpeak(){
     if(ttsAudio){ttsAudio.pause();ttsAudio=null}
     speaking=false; btn.innerHTML=PLAY_SVG; stat.innerHTML=''; return;
   }
-  const text=document.getElementById('editor').innerText.trim();
+  // Ist im Text etwas markiert, nur das vorlesen
+  const ed=document.getElementById('editor');
+  const part=(lastEdRange&&!lastEdRange.collapsed&&ed.contains(lastEdRange.commonAncestorContainer))?lastEdRange.toString().trim():'';
+  const text=part||ed.innerText.trim();
   if(!text) return;
+  if(part) zoToast('Lese die Markierung vor');
 
   speaking=true;
   btn.innerHTML=STOP_SVG;
