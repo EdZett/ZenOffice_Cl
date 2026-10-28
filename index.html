@@ -146,13 +146,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
   border-color:#9b2a45;
   animation:zen-rec 1.4s ease-in-out infinite;
 }
-/* Touch: Mikrofon als dicker runder Knopf über beide Reihen, bleibt beim seitlichen Wischen stehen */
-body.touch #text-panel .tb{display:flex;flex-wrap:nowrap;align-items:center;overflow:visible}
-body.touch #text-panel .tbi{flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
-body.touch #text-panel .tbi::-webkit-scrollbar{display:none}
-@media(min-width:601px){body.touch #text-panel .tbi{display:flex;flex-wrap:wrap;align-items:center;gap:5px;overflow:visible}}
-.tbb.zen-dic.dicbig{width:86px;height:86px;min-width:86px;border-radius:50%;padding:0;justify-content:center;font-size:0;margin-left:8px;flex-shrink:0;border-width:2px}
-.tbb.zen-dic.dicbig svg{width:38px;height:38px}
+/* Touch: Mikrofon schwebt durchsichtig rechts im unteren Drittel – mit dem Daumen erreichbar, Text bleibt lesbar */
+.tbb.zen-dic.dicbig{position:fixed;right:12px;bottom:22%;z-index:50;width:68px;height:68px;min-width:68px;border-radius:50%;padding:0;justify-content:center;font-size:0;
+  background:rgba(201,169,110,.08);border:2px solid rgba(201,169,110,.45);color:rgba(232,213,170,.85);box-shadow:none}
+.tbb.zen-dic.dicbig svg{width:30px;height:30px}
+.tbb.zen-dic.dicbig.rec,.tbb.zen-dic.dicbig.rec:hover{background:rgba(128,24,48,.28);border-color:rgba(155,42,69,.9);color:#f5d2da}
 body.touch #dicleg{display:none!important}
 /* Gerade gesprochener Satz, solange er noch wächst */
 .dicl{color:var(--gold);background:rgba(201,169,110,.12);border-radius:4px}
@@ -815,13 +813,13 @@ window.addEventListener('load',()=>{
   // Seite darf nie wegscrollen (sonst verschwinden Blatt-Symbol und Titelfeld)
   window.addEventListener('scroll',()=>{if(window.scrollY||window.scrollX)window.scrollTo(0,0)},{passive:true});
   ['main','content'].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener('scroll',()=>{if(e.scrollTop)e.scrollTop=0;if(e.scrollLeft)e.scrollLeft=0},{passive:true})});
-  // Diktat auf allen Geräten; auf Handy/Tablet als großer runder Knopf rechts neben beiden Reihen
+  // Diktat auf allen Geräten; auf Handy/Tablet als durchsichtiger runder Knopf, der rechts im unteren Drittel schwebt
   const isTouch=matchMedia('(pointer:coarse)').matches;
   if(isTouch) document.body.classList.add('touch');
   if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
     const db=document.getElementById('dicbtn');
     db.style.display='flex'; document.getElementById('diclang').style.display='flex';
-    if(isTouch){db.classList.add('dicbig'); db.title='Diktat starten/beenden'; document.querySelector('#text-panel .tb').appendChild(db)}
+    if(isTouch){db.classList.add('dicbig'); db.title='Diktat starten/beenden'; document.getElementById('text-panel').appendChild(db)}
   }
   if(isTouch){keepAppInView(); initToolsAutoHide()}
   // Schlüssel sind in Vercel - kein lokaler Check nötig
