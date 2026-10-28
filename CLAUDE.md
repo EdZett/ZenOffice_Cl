@@ -125,7 +125,7 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 **Ablauf bei Änderungen:**
 1. Neuer Branch (der Nutzer bestätigt ihn jeweils).
 2. Lokal testen: lokaler Server (`npx http-server`), Browser-Prüfung, Attrappen für die API-Aufrufe.
-3. Push. Vercel baut eine **Vorschau** (in Vercel unter Deployments, Eintrag „Preview“ mit Branch-Namen; den Weg dorthin beschreiben statt nur einen Link zu nennen).
+3. Push. Vercel baut eine **Vorschau** (Eintrag „Preview“ mit Branch-Namen). Nur den Branch-Namen nennen – **keine Anleitungen, wie oder wo man testet**; der Nutzer kennt den Weg und fragt selbst, wenn nötig (Wunsch vom 2026-10-28).
 4. Der Nutzer testet in der Vorschau.
 5. **Erst auf seinen ausdrücklichen Wunsch** per Fast-Forward in `main` übernehmen und pushen. Danach prüfen, ob zen-office-cl.vercel.app die neue Version zeigt.
 - Commit-Nachrichten auf Deutsch, mit `Co-Authored-By`-Zeile.
