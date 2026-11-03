@@ -85,6 +85,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);display:flex;f
   <div class="hd">
     <img src="/diktat-icon-192.png?v=1" alt="">
     <div class="ttl">Diktat<small>ZenOffice</small></div>
+    <button class="pill sm on hidden" id="instbtn" onclick="installApp()" title="Als eigene App auf den Startbildschirm">
+      <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Installieren</button>
     <button class="pill sm" id="langbtn" onclick="toggleLang()" title="Sprache">DE</button>
     <button class="pill sm on" id="smbtn" onclick="toggleSmooth()" title="Text von der KI glätten lassen">
       <svg viewBox="0 0 24 24"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>Glätten</button>
@@ -159,15 +161,22 @@ function startRec(append){
 function runEngine(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   rec=new SR(); rec.lang=lang; rec.continuous=true; rec.interimResults=true;
+  let heard=false; // wurde in dieser Runde etwas gesprochen?
   rec.onresult=e=>{
     const t=dicText(e.results); if(!t) return;
+    heard=true;
     live=join(base,t);
     txt.value=live; txt.scrollTop=txt.scrollHeight;
   };
-  // Chrome beendet nach Pausen von selbst – das Gesagte festhalten und weiterhören
+  // Chrome (v. a. Android) beendet nach einer Sprechpause von selbst; jeder Neustart piept.
+  // Darum nur weiterhören, wenn in dieser Runde gesprochen wurde. Endet eine Runde stumm,
+  // ist das Diktat fertig (glätten + kopieren) – so gibt es kein Dauer-Piepen mehr.
   rec.onend=()=>{
     base=live;
-    if(state==='rec') setTimeout(()=>{ if(state==='rec'){ try{rec.start()}catch(e){setTimeout(()=>{if(state==='rec')runEngine()},300)} } },150);
+    if(state!=='rec') return;
+    if(heard){ heard=false; setTimeout(()=>{ if(state==='rec'){ try{rec.start()}catch(e){setTimeout(()=>{if(state==='rec')runEngine()},300)} } },150); return }
+    if(txt.value.trim()) finish();
+    else { stopEngine(); setState('idle'); setStat('Nichts gehört – zum Sprechen aufs Mikrofon tippen.') }
   };
   rec.onerror=e=>{
     if(e.error==='not-allowed'||e.error==='service-not-allowed'){
@@ -327,6 +336,12 @@ document.addEventListener('visibilitychange',()=>{
   else if(state==='done'||state==='idle') startRec(false);
 });
 window.addEventListener('load',()=>startRec(false));
+
+// Knopf „Installieren“: erscheint, sobald Chrome die Diktier-App als eigene App anbietet
+let instEvt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEvt=e;$('instbtn').classList.remove('hidden')});
+window.addEventListener('appinstalled',()=>{instEvt=null;$('instbtn').classList.add('hidden')});
+async function installApp(){ if(!instEvt) return; instEvt.prompt(); try{await instEvt.userChoice}catch(e){} instEvt=null; $('instbtn').classList.add('hidden') }
 
 if('serviceWorker' in navigator && !location.hostname.includes('claudeusercontent')){
   navigator.serviceWorker.register('/sw.js').catch(e=>console.warn('SW Fehler:',e));

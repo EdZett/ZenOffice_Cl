@@ -118,6 +118,8 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 - Ziel: Sprache für jedes Eingabefeld (auch andere Apps) – sprechen, glätten, Zwischenablage, dort einfügen. Für das Tablet gebaut.
 - Beim Öffnen und beim Zurückkehren in die App beginnt sofort die Aufnahme (fertiger Text wandert in den Verlauf, unterbrochene Aufnahme läuft weiter). Knopf „Fertig“ → Claude Haiku glättet (Anweisung wie „Optimieren → Grammatik & Klang“ plus Diktat-Korrekturen) → automatisch kopiert. Scheitert das Kopieren (z. B. Safari ohne Antippen), erscheint der Hinweis auf „Kopieren“.
 - Weitere Knöpfe: Weiter (anhängen), Neu, Original/Geglättet, Neu glätten, Verlauf (letzte 10, localStorage `zo_dk_hist`). Schalter: DE/EN (`zo_dk_lang`), Glätten an/aus (`zo_dk_smooth`), Hell/Dunkel (`zo_dk_light`). Bildschirm bleibt beim Aufnehmen an (Wake Lock).
+- Piepen: Android piept bei jedem Start/Stopp der Spracherkennung (lässt sich von einer Webseite nicht abschalten). Darum wird nach einer Pause nur neu gestartet, wenn in der Runde gesprochen wurde; eine stumme Runde beendet das Diktat (glätten + kopieren) bzw. geht ohne Text in Ruhe. Früher ständiger Neustart → Dauer-Piepen (2026-11-03).
+- Knopf „Installieren“ oben erscheint, sobald Chrome die App anbietet (`beforeinstallprompt`).
 - Nutzt denselben Service Worker `/sw.js` (Scope „/“) und `api/claude.js`; `dicText()` ist aus der Haupt-App kopiert.
 
 ## 4. Regeln & Constraints
