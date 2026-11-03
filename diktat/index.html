@@ -95,8 +95,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);display:flex;f
   <div class="hd">
     <img src="/diktat-icon-192.png?v=1" alt="">
     <div class="ttl">Diktat<small>ZenOffice</small></div>
-    <button class="pill sm on hidden" id="instbtn" onclick="installApp()" title="Als eigene App auf den Startbildschirm">
-      <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Installieren</button>
     <button class="pill sm" id="engbtn" onclick="toggleEngine()" title="Wer schreibt deine Sprache mit? Browser (kostenlos, Text erscheint sofort) oder Premium (Google Gemini, genauer, kostet etwas)">
       <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg><span id="englbl">Browser</span></button>
     <button class="pill sm" id="langbtn" onclick="toggleLang()" title="Sprache">DE</button>
@@ -533,12 +531,6 @@ window.addEventListener('load',()=>{
   try{const c=(localStorage.getItem('zo_dk_cur')||'').trim(); if(c) addHist(c); localStorage.removeItem('zo_dk_cur')}catch(e){}
   startRec();
 });
-
-// Knopf „Installieren“: erscheint, sobald Chrome die Diktier-App als eigene App anbietet
-let instEvt=null;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEvt=e;$('instbtn').classList.remove('hidden')});
-window.addEventListener('appinstalled',()=>{instEvt=null;$('instbtn').classList.add('hidden')});
-async function installApp(){ if(!instEvt) return; instEvt.prompt(); try{await instEvt.userChoice}catch(e){} instEvt=null; $('instbtn').classList.add('hidden') }
 
 if('serviceWorker' in navigator && !location.hostname.includes('claudeusercontent')){
   navigator.serviceWorker.register('/sw.js').catch(e=>console.warn('SW Fehler:',e));
