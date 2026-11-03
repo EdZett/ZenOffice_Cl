@@ -1224,7 +1224,7 @@ const MY_RULE='Korrigiere meinen diktierten Text hinsichtlich Grammatik, Rechtsc
   +'Schreibe korrektes Schriftdeutsch (Hochdeutsch), keine Umgangs- oder Regionalsprache: Verkürzungen wie „geht’s“, „gibt’s“, „erstmal“, „dran“, „drauf“, „nix“, „ne“, „nich“, „haste“ schreibst du aus („geht es“, „erst einmal“, „daran“ …). '
   +'Füllwörter, die nur Sprechpausen füllen („okay“, „also“, „halt“, „äh“), sowie abgebrochene Satzanfänge und Selbstkorrekturen („er muss – ich muss“) entfernst du; nur die gemeinte Fassung bleibt. '
   +'Mein persönlicher Stil bedeutet meine Wortwahl und meinen Gedankengang – nicht gesprochene Umgangssprache. '
-  +'Die Spracherkennung verhört sich manchmal: Ein Wort ersetzt du nur, wenn aus dem Zusammenhang eindeutig ist, was gemeint war; sonst lass es stehen – niemals raten. Sprache des Textes beibehalten. Nur der Text.';
+  +'Die Spracherkennung verhört sich manchmal: Ein Wort ersetzt du nur, wenn aus dem Zusammenhang eindeutig ist, was gemeint war; sonst lass es stehen – niemals raten. Absätze und Zeilenumbrüche bleiben erhalten. Sprache des Textes beibehalten. Nur der Text.';
 async function aiTxt(instruction){
   const ed=document.getElementById('editor');
   const sel=window.getSelection(); const selTxt=sel?.toString();
