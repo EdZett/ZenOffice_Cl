@@ -242,12 +242,18 @@ async function smooth(t){
 }
 function redoSmooth(){ const t=txt.value.trim(); if(!t||state==='rec'||state==='smooth') return; raw=t; smooth(t) }
 
-// Gleiche Anweisung wie „Optimieren → Grammatik & Klang“, ergänzt um typische Diktat-Fehler
+// Persönliche Diktierregel des Nutzers (wörtlich), ergänzt um Diktat-Besonderheiten.
+// Früher „Grammatik & Klang … seriös, aber modern“ – das schrieb den Stil um und riet bei unklaren Wörtern.
 async function callClaude(text){
-  const task='Glätte diesen diktierten Text. Verbessere Grammatik, Klang und Stil: seriös, aber modern und angenehm. '
-    +'Setze Satzzeichen und Großschreibung, korrigiere falsch erkannte oder verdrehte Wörter, entferne Füllwörter (äh, ähm, also halt) und Wiederholungen. '
+  const task='Korrigiere meinen diktierten Text hinsichtlich Grammatik, Rechtschreibung, Zeichensetzung und Ausdruck. '
+    +'Bewahre dabei unbedingt meinen persönlichen Sprachstil, meine Wortwahl, meine Sprachmelodie und meine gedankliche Struktur. '
+    +'Entferne störende Versprecher und unnötige Wiederholungen. Verbessere holprige Formulierungen behutsam. '
+    +'Fasse nicht unnötig zusammen, interpretiere meine Aussagen nicht um und füge keine eigenen Gedanken hinzu. '
+    +'Das Ergebnis soll klingen, als hätte ich selbst einen guten Text geschrieben.\n\n'
+    +'Zum Diktat: Die Spracherkennung verhört sich manchmal. Ein Wort ersetzt du nur, wenn aus dem Zusammenhang eindeutig ist, was gemeint war; '
+    +'bist du unsicher, lass das Wort so stehen, wie es erkannt wurde – niemals raten. '
     +'Gesprochene Anweisungen wie „Komma“, „Punkt“, „Fragezeichen“, „neue Zeile“ oder „neuer Absatz“ setzt du als Zeichen bzw. Umbruch um. '
-    +'Inhalt, Aussage, Tonfall und Sprache bleiben erhalten; erfinde nichts hinzu. Nur der Text.';
+    +'Sprache des Textes beibehalten. Nur der Text.';
   const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({model:SMOOTH_MODEL,max_tokens:Math.min(4000,600+text.length),
       system:'Du bist ein professioneller Textassistent. Gib NUR den fertigen Text zurück – keine Vorbemerkungen, Anführungszeichen oder Erklärungen.',
