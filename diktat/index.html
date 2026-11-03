@@ -256,7 +256,10 @@ async function smooth(t){
     $('origbtn').classList.toggle('hidden',smoothed===raw);
     $('origbtn').querySelector('span').textContent='Original';
     setState('idle'); saveCur();
-    await copyOut(smoothed,'Geglättet');
+    // Sichtbar machen, wie viel sich geändert hat – sonst wirkt Glätten bei sauberem Text, als täte es nichts
+    const n=diffWords(raw,smoothed);
+    await copyOut(smoothed, n? 'Geglättet: '+n+(n===1?' Wort':' Wörter')+' geändert („Original“ zeigt den Text vorher)'
+                             : 'Nichts zu glätten – der Text war schon in Ordnung');
   }catch(e){
     console.warn('Glätten Fehler:',e);
     txt.value=t; setState('idle');
@@ -264,6 +267,15 @@ async function smooth(t){
   }
 }
 
+// Wie viele Wörter wurden geändert, entfernt oder ergänzt? (Wortvergleich über die längste gemeinsame Folge)
+function diffWords(a,b){
+  const x=a.split(/\s+/).filter(Boolean), y=b.split(/\s+/).filter(Boolean);
+  if(x.length*y.length>4e6) return Math.abs(x.length-y.length)||1;
+  let prev=new Uint16Array(y.length+1);
+  for(let i=1;i<=x.length;i++){const cur=new Uint16Array(y.length+1);
+    for(let j=1;j<=y.length;j++) cur[j]=x[i-1]===y[j-1]?prev[j-1]+1:Math.max(prev[j],cur[j-1]); prev=cur}
+  return Math.max(x.length,y.length)-prev[y.length];
+}
 // Persönliche Diktierregel des Nutzers (wörtlich), ergänzt um Diktat-Besonderheiten.
 // Früher „Grammatik & Klang … seriös, aber modern“ – das schrieb den Stil um und riet bei unklaren Wörtern.
 async function callClaude(text){
@@ -296,7 +308,7 @@ async function copyText(t){
 }
 async function copyOut(t,label){
   addHist(t);
-  if(await copyText(t)) setStat('✓ '+(label?label+' und ':'')+'kopiert – jetzt einfach einfügen','ok');
+  if(await copyText(t)) setStat('✓ '+(label?label+' · ':'')+'kopiert – jetzt einfach einfügen','ok');
   else setStat((label?label+'. ':'')+'Automatisch kopieren ging nicht – bitte auf „Kopieren“ tippen.','err');
 }
 async function copyNow(){
