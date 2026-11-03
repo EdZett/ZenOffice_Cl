@@ -33,7 +33,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);display:flex;f
 .wrap{width:100%;max-width:880px;flex:1;display:flex;flex-direction:column;gap:14px;min-height:0}
 
 /* Kopfzeile */
-.hd{display:flex;align-items:center;gap:10px}
+.hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .hd img{width:30px;height:30px;border-radius:8px}
 .ttl{font-family:var(--fs);font-size:24px;font-weight:300;letter-spacing:.04em;color:var(--gold);flex:1}
 .ttl small{font-family:var(--fn);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text3);margin-left:6px}
@@ -97,6 +97,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);display:flex;f
     <div class="ttl">Diktat<small>ZenOffice</small></div>
     <button class="pill sm on hidden" id="instbtn" onclick="installApp()" title="Als eigene App auf den Startbildschirm">
       <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Installieren</button>
+    <button class="pill sm" id="engbtn" onclick="toggleEngine()" title="Wer schreibt deine Sprache mit? Browser (kostenlos, Text erscheint sofort) oder Premium (Google Gemini, genauer, kostet etwas)">
+      <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg><span id="englbl">Browser</span></button>
     <button class="pill sm" id="langbtn" onclick="toggleLang()" title="Sprache">DE</button>
     <button class="pill sm on" id="smbtn" onclick="toggleSmooth()" title="Text von der KI glätten lassen">
       <svg viewBox="0 0 24 24"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>Glätten</button>
@@ -131,13 +133,14 @@ const txt=$('txt'), stat=$('stat'), mic=$('mic');
 const SMOOTH_MODEL='claude-haiku-5-5'; // Nano: schnell und günstig; Ersatzkette liegt in api/claude.js
 let state='idle';          // idle (Text frei bearbeitbar) | rec | smooth
 let rec=null, base='', live='', lang='de-DE', raw='', smoothed='', showOrig=false, wakeLock=null;
-let smoothOn=true;
+let smoothOn=true, engine='browser';
+try{engine=localStorage.getItem('zo_dk_engine')==='premium'?'premium':'browser'}catch(e){}
 try{smoothOn=localStorage.getItem('zo_dk_smooth')!=='0'}catch(e){}
 try{if(localStorage.getItem('zo_dk_light')==='1')document.body.classList.add('light')}catch(e){}
 try{lang=localStorage.getItem('zo_dk_lang')||'de-DE'}catch(e){}
 $('smbtn').classList.toggle('on',smoothOn);
 $('langbtn').textContent=lang==='de-DE'?'DE':'EN';
-updGo();
+updGo(); updEngine();
 
 function setStat(html,cls=''){stat.className=cls;stat.innerHTML=html}
 function setState(s){
@@ -162,9 +165,10 @@ function pauseRec(msg){
   setStat(msg||'Pause – Text kannst du jetzt von Hand ändern. Weitersprechen: Mikrofon.');
 }
 function startRec(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){setStat('Spracheingabe geht hier nicht – bitte Chrome verwenden.','err');return}
   if(state==='rec') return;
+  if(engine==='premium'){ startPremium(); return }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){setStat('Spracheingabe geht hier nicht – bitte Chrome verwenden oder oben „Premium“ wählen.','err');return}
   txt.blur();
   base=txt.value.trim(); live=base;
   setState('rec');
@@ -201,7 +205,9 @@ function runEngine(){
   };
   try{rec.start()}catch(e){console.warn('Diktat Start Fehler:',e)}
 }
-function stopEngine(){
+// discard=true: laufende Premium-Aufnahme verwerfen (z. B. „Neuer Text“), sonst noch erkennen und anhängen
+function stopEngine(discard){
+  if(pm) stopPremium(discard);
   if(!rec) return;
   rec.onend=rec.onerror=rec.onresult=null;
   try{rec.stop()}catch(e){}
@@ -233,6 +239,7 @@ function dicText(results){
 async function goTap(){
   if(state==='smooth') return;
   if(state==='rec'){ stopEngine(); setState('idle') }
+  if(sttBusy){ setStat('Sprache wird noch erkannt …'); await sttChain }
   const t=txt.value.trim();
   if(!t){setStat('Noch kein Text – aufs Mikrofon tippen und sprechen.');return}
   if(!smoothOn){ await copyOut(t,''); return }
@@ -303,7 +310,8 @@ function toggleOrig(){
   copyNow();
 }
 function clearAll(){
-  if(state==='rec') stopEngine();
+  if(state==='rec') stopEngine(true);
+  sttGen++;
   if(txt.value.trim()) addHist(txt.value.trim());
   txt.value=''; raw=smoothed=''; showOrig=false; $('origbtn').classList.add('hidden');
   setState('idle'); saveCur();
@@ -332,7 +340,8 @@ function renderHist(){
     del.onclick=()=>delHist(i);
     d.onclick=async()=>{
       if(row.dataset.swiped) return;
-      if(state==='rec') stopEngine();
+      if(state==='rec') stopEngine(true);
+      sttGen++;
       const cur=txt.value.trim(); if(cur&&cur!==t) addHist(cur);
       txt.value=t; raw=smoothed=''; showOrig=false; $('origbtn').classList.add('hidden'); setState('idle'); saveCur();
       const ok=await copyText(t); setStat(ok?'✓ Aus dem Verlauf übernommen und kopiert':'Übernommen – bitte auf „Kopieren“ tippen.',ok?'ok':'err')};
@@ -348,12 +357,102 @@ function renderHist(){
 }
 function toggleHist(){const b=$('hist');b.classList.toggle('vis');if(b.classList.contains('vis'))renderHist()}
 
+// ═══════════════════════════════════════
+// PREMIUM-ERKENNUNG: eigene Aufnahme → Gemini (api/stt.js)
+// Aufnahme in Stücken: bei einer Sprechpause oder spätestens nach 45 s wird ein Stück
+// als WAV (16 kHz, mono) verschickt – so bleibt jede Anfrage weit unter Vercels 4,5 MB und der Text kommt Stück für Stück.
+// ═══════════════════════════════════════
+let pm=null, sttChain=Promise.resolve(), sttBusy=0, sttGen=0;
+const STT_RATE=16000;
+async function startPremium(){
+  if(!navigator.mediaDevices?.getUserMedia){setStat('Aufnehmen geht in diesem Browser nicht.','err');return}
+  txt.blur(); setState('rec');
+  setStat('<span class="dot"></span>Premium hört zu … (Text erscheint nach jeder Sprechpause)');
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    if(state!=='rec'){stream.getTracks().forEach(t=>t.stop());return}
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const src=ctx.createMediaStreamSource(stream), proc=ctx.createScriptProcessor(4096,1,1);
+    pm={stream,ctx,src,proc,buf:[],len:0,speech:0,silent:0,quiet:0};
+    proc.onaudioprocess=e=>{
+      if(!pm) return;
+      const d=new Float32Array(e.inputBuffer.getChannelData(0)), dur=d.length/ctx.sampleRate;
+      let sum=0; for(let i=0;i<d.length;i++) sum+=d[i]*d[i];
+      const loud=Math.sqrt(sum/d.length)>0.012;
+      if(loud){pm.speech+=dur;pm.silent=0;pm.quiet=0} else {pm.silent+=dur;pm.quiet+=dur}
+      pm.buf.push(d); pm.len+=d.length;
+      const secs=pm.len/ctx.sampleRate;
+      // Vor dem ersten Wort nur die letzte Sekunde behalten (keine langen Stillen verschicken)
+      if(!pm.speech){ while(pm.buf.length>1&&(pm.len-pm.buf[0].length)/ctx.sampleRate>1){pm.len-=pm.buf.shift().length} }
+      else if((pm.silent>1.5&&pm.speech>0.8)||secs>45) flushPremium();
+      // 2 Minuten nichts gesagt → Pause (Mikrofon nicht endlos offen)
+      if(pm&&pm.quiet>120) pauseRec('Pause nach 2 Minuten Stille – weitersprechen mit dem Mikrofon.');
+    };
+    src.connect(proc); proc.connect(ctx.destination);
+  }catch(e){
+    console.warn('Premium Aufnahme Fehler:',e); pm=null; setState('idle');
+    setStat(e.name==='NotAllowedError'?'Bitte den Mikrofon-Zugriff erlauben – dann aufs Mikrofon tippen.':'Aufnahme ging nicht: '+esc(e.message),'err');
+  }
+}
+function flushPremium(){
+  if(!pm||!pm.len) return;
+  const parts=pm.buf, len=pm.len, rate=pm.ctx.sampleRate, hadSpeech=pm.speech>0.3;
+  pm.buf=[]; pm.len=0; pm.speech=0; pm.silent=0;
+  if(!hadSpeech) return;
+  const gen=sttGen; sttBusy++;
+  sttChain=sttChain.then(async()=>{
+    try{
+      const t=await transcribe(toWav16(parts,len,rate));
+      if(t&&gen===sttGen){ txt.value=join(txt.value.trim(),t); txt.scrollTop=txt.scrollHeight; saveCur() }
+    }catch(e){ console.warn('Premium-Erkennung Fehler:',e); setStat('Premium-Erkennung ging nicht ('+esc(e.message)+') – oben auf „Browser“ umschalten.','err') }
+    finally{ sttBusy--; if(!sttBusy&&state!=='rec'&&!/err/.test(stat.className)) setStat('Fertig erkannt – weitersprechen mit dem Mikrofon, fertig mit „'+(smoothOn?'Glätten & kopieren':'Kopieren')+'“.') }
+  });
+  if(state!=='rec') setStat('Sprache wird erkannt …');
+}
+function stopPremium(discard){
+  if(!pm) return;
+  if(!discard) flushPremium();
+  try{pm.proc.disconnect();pm.src.disconnect();pm.stream.getTracks().forEach(t=>t.stop());pm.ctx.close()}catch(e){}
+  pm=null;
+  if(sttBusy) setStat('Sprache wird erkannt …');
+}
+// Float-Stücke → 16 kHz mono 16-Bit-WAV als Base64
+function toWav16(parts,len,rate){
+  const all=new Float32Array(len); let o=0; parts.forEach(p=>{all.set(p,o);o+=p.length});
+  const n=Math.floor(len*STT_RATE/rate), pcm=new DataView(new ArrayBuffer(44+n*2)), r=rate/STT_RATE;
+  const w=(p,s)=>{for(let i=0;i<s.length;i++)pcm.setUint8(p+i,s.charCodeAt(i))};
+  w(0,'RIFF');pcm.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');pcm.setUint32(16,16,true);pcm.setUint16(20,1,true);pcm.setUint16(22,1,true);
+  pcm.setUint32(24,STT_RATE,true);pcm.setUint32(28,STT_RATE*2,true);pcm.setUint16(32,2,true);pcm.setUint16(34,16,true);w(36,'data');pcm.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){ // Mittelwert über den Bereich = einfacher Tiefpass beim Verkleinern
+    const a=Math.floor(i*r), b=Math.min(len,Math.max(a+1,Math.floor((i+1)*r))); let s=0; for(let j=a;j<b;j++) s+=all[j];
+    const v=Math.max(-1,Math.min(1,s/(b-a))); pcm.setInt16(44+i*2,v<0?v*0x8000:v*0x7FFF,true) }
+  const u=new Uint8Array(pcm.buffer); let bin=''; for(let i=0;i<u.length;i+=0x8000) bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));
+  return btoa(bin);
+}
+async function transcribe(b64){
+  const r=await fetch('/api/stt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audio:b64,lang})});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error||'Fehler '+r.status)}
+  return ((await r.json()).text||'').trim();
+}
+function updEngine(){
+  $('englbl').textContent=engine==='premium'?'Premium':'Browser';
+  $('engbtn').classList.toggle('on',engine==='premium');
+}
+function toggleEngine(){
+  const wasRec=state==='rec'; if(wasRec) pauseRec();
+  engine=engine==='premium'?'browser':'premium'; updEngine();
+  try{localStorage.setItem('zo_dk_engine',engine)}catch(e){}
+  setStat(engine==='premium'
+    ?'Premium: Google Gemini schreibt mit – genauer, Text kommt nach jeder Sprechpause, kostet pro Aufnahme etwas.'
+    :'Browser: die eingebaute Spracherkennung des Browsers – kostenlos, Text erscheint sofort beim Sprechen.');
+}
+
 // ── Einstellungen ──
 function toggleLang(){
   lang=lang==='de-DE'?'en-US':'de-DE';
   $('langbtn').textContent=lang==='de-DE'?'DE':'EN';
   try{localStorage.setItem('zo_dk_lang',lang)}catch(e){}
-  if(state==='rec'){stopEngine();runEngine()}
+  if(state==='rec'&&engine==='browser'){stopEngine();runEngine()}
 }
 function toggleSmooth(){
   smoothOn=!smoothOn; $('smbtn').classList.toggle('on',smoothOn);
