@@ -100,7 +100,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);display:flex;f
     <button class="pill sm" id="engbtn" onclick="toggleEngine()" title="Wer schreibt deine Sprache mit? Browser (kostenlos, Text erscheint sofort) oder Premium (Google Gemini, genauer, kostet etwas)">
       <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg><span id="englbl">Browser</span></button>
     <button class="pill sm" id="langbtn" onclick="toggleLang()" title="Sprache">DE</button>
-    <button class="pill sm on" id="smbtn" onclick="toggleSmooth()" title="Glätten: Sanft (nur Fehler, deine Wortwahl bleibt) · Gründlich (auch Formulierungen verbessern) · Aus">
+    <button class="pill sm on" id="smbtn" onclick="toggleSmooth()" title="Glätten: Sanft (Formulierungen verbessern, dein Tonfall bleibt) · Gründlich (wie „Grammatik &amp; Klang“ in ZenOffice) · Aus">
       <svg viewBox="0 0 24 24"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg><span id="smlbl">Sanft</span></button>
     <button class="pill sm" onclick="toggleTheme()" title="Hell / Dunkel">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg></button>
@@ -280,29 +280,25 @@ function diffWords(a,b){
     for(let j=1;j<=y.length;j++) cur[j]=x[i-1]===y[j-1]?prev[j-1]+1:Math.max(prev[j],cur[j-1]); prev=cur}
   return Math.max(x.length,y.length)-prev[y.length];
 }
-// Persönliche Diktierregel des Nutzers (wörtlich), ergänzt um Diktat-Besonderheiten.
-// Früher „Grammatik & Klang … seriös, aber modern“ – das schrieb den Stil um und riet bei unklaren Wörtern.
+// Glätten-Stufen (Wunsch 2026-11-03):
+// Sanft = das frühere „Gründlich“ (Formulierungen verbessern, Gedankengang und Tonfall bleiben, plus Diktat-Regeln).
+// Gründlich = genau wie „Optimieren → Grammatik & Klang“ in ZenOffice (gleiche Anweisung, gleiches Modell Haiku) –
+// diese Art der Überarbeitung gefällt dem Nutzer am besten. Nur „Absätze erhalten“ kommt dazu.
+// Seine wörtliche Diktierregel gibt es weiter in ZenOffice unter „Optimieren → Meine Diktierregel“.
 async function callClaude(text){
-  // Sanft = Regel des Nutzers wörtlich. Gründlich: Seine Regel („Wortwahl bewahren, behutsam“) verbot genau die
-  // Verbesserungen, die er von „Optimieren“ kannte – darum eine zweite Stufe, die Formulierungen spürbar verbessert.
-  const task=(smoothLvl===2
-    ? 'Überarbeite meinen diktierten Text gründlich zu einem gut lesbaren, geschriebenen Text. Korrigiere Grammatik, Rechtschreibung und Zeichensetzung. '
+  const task=smoothLvl===2
+    ? 'Verbessere Grammatik, Klang und Stil. Seriös aber modern und angenehm. Absätze und Zeilenumbrüche bleiben erhalten. Nur der Text.'
+    : 'Überarbeite meinen diktierten Text gründlich zu einem gut lesbaren, geschriebenen Text. Korrigiere Grammatik, Rechtschreibung und Zeichensetzung. '
       +'Ersetze ungenaue, umständliche, holprige oder gesprochen klingende Formulierungen durch treffendere und flüssigere – klar und natürlich, nicht gestelzt. '
       +'Bewahre meinen Gedankengang, meine Aussagen, meinen Tonfall und meine Persönlichkeit. '
       +'Fasse nicht zusammen, lass keine Inhalte weg, interpretiere meine Aussagen nicht um und füge keine eigenen Gedanken hinzu. '
       +'Das Ergebnis soll klingen, als hätte ich selbst einen sehr guten Text geschrieben.\n\n'
-    : 'Korrigiere meinen diktierten Text hinsichtlich Grammatik, Rechtschreibung, Zeichensetzung und Ausdruck. '
-      +'Bewahre dabei unbedingt meinen persönlichen Sprachstil, meine Wortwahl, meine Sprachmelodie und meine gedankliche Struktur. '
-      +'Entferne störende Versprecher und unnötige Wiederholungen. Verbessere holprige Formulierungen behutsam. '
-      +'Fasse nicht unnötig zusammen, interpretiere meine Aussagen nicht um und füge keine eigenen Gedanken hinzu. '
-      +'Das Ergebnis soll klingen, als hätte ich selbst einen guten Text geschrieben.\n\n')
-    +'Schreibe korrektes Schriftdeutsch (Hochdeutsch), keine Umgangs- oder Regionalsprache: Verkürzungen wie „geht’s“, „gibt’s“, „erstmal“, „dran“, „drauf“, „nix“, „ne“, „nich“, „haste“ schreibst du aus („geht es“, „erst einmal“, „daran“ …). '
-    +'Füllwörter, die nur Sprechpausen füllen („okay“, „also“, „halt“, „äh“), sowie abgebrochene Satzanfänge und Selbstkorrekturen („er muss – ich muss“) entfernst du; nur die gemeinte Fassung bleibt. '
-    +'Mein persönlicher Stil bedeutet meine Wortwahl und meinen Gedankengang – nicht gesprochene Umgangssprache. '
-    +'Zum Diktat: Die Spracherkennung verhört sich manchmal. Ein Wort ersetzt du nur, wenn aus dem Zusammenhang eindeutig ist, was gemeint war; '
-    +'bist du unsicher, lass das Wort so stehen, wie es erkannt wurde – niemals raten. '
-    +'Gesprochene Anweisungen wie „Komma“, „Punkt“, „Fragezeichen“, „neue Zeile“ oder „neuer Absatz“ setzt du als Zeichen bzw. Umbruch um. '
-    +'Absätze und Zeilenumbrüche bleiben genau so erhalten. Sprache des Textes beibehalten. Nur der Text.';
+      +'Schreibe korrektes Schriftdeutsch (Hochdeutsch), keine Umgangs- oder Regionalsprache: Verkürzungen wie „geht’s“, „gibt’s“, „erstmal“, „dran“, „drauf“, „nix“, „ne“, „nich“, „haste“ schreibst du aus („geht es“, „erst einmal“, „daran“ …). '
+      +'Füllwörter, die nur Sprechpausen füllen („okay“, „also“, „halt“, „äh“), sowie abgebrochene Satzanfänge und Selbstkorrekturen („er muss – ich muss“) entfernst du; nur die gemeinte Fassung bleibt. '
+      +'Zum Diktat: Die Spracherkennung verhört sich manchmal. Ein Wort ersetzt du nur, wenn aus dem Zusammenhang eindeutig ist, was gemeint war; '
+      +'bist du unsicher, lass das Wort so stehen, wie es erkannt wurde – niemals raten. '
+      +'Gesprochene Anweisungen wie „Komma“, „Punkt“, „Fragezeichen“, „neue Zeile“ oder „neuer Absatz“ setzt du als Zeichen bzw. Umbruch um. '
+      +'Absätze und Zeilenumbrüche bleiben genau so erhalten. Sprache des Textes beibehalten. Nur der Text.';
   const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({model:SMOOTH_MODEL,max_tokens:Math.min(4000,600+text.length),
       system:'Du bist ein professioneller Textassistent. Gib NUR den fertigen Text zurück – keine Vorbemerkungen, Anführungszeichen oder Erklärungen.',
@@ -505,8 +501,8 @@ function toggleSmooth(){
   smoothLvl=(smoothLvl+1)%3; smoothOn=smoothLvl>0; updSmooth(); updGo();
   try{localStorage.setItem('zo_dk_smooth',String(smoothLvl))}catch(e){}
   if(state!=='rec') setStat(['KI-Glätten aus – der Text wird so kopiert, wie er erkannt wurde',
-    'Sanft: nur Fehler, Versprecher und Umgangssprache – deine Wortwahl bleibt',
-    'Gründlich: verbessert auch holprige und ungenaue Formulierungen – dein Gedankengang und Tonfall bleiben'][smoothLvl]);
+    'Sanft: verbessert holprige und ungenaue Formulierungen – dein Gedankengang und Tonfall bleiben',
+    'Gründlich: wie „Grammatik & Klang“ in ZenOffice – seriös, modern und angenehm'][smoothLvl]);
 }
 function toggleTheme(){
   const l=document.body.classList.toggle('light');
