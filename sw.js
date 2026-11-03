@@ -1,5 +1,5 @@
 // ZenOffice Claude Edition – Service Worker
-const CACHE = 'zenoffice-claude-v4';
+const CACHE = 'zenoffice-claude-v5';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -40,7 +40,7 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE).then(cache => cache.put(e.request, clone));
       }
       return response;
-    }).catch(() => caches.match(e.request).then(c => c || (e.request.mode === 'navigate' ? caches.match('/') : undefined))
+    }).catch(() => caches.match(e.request).then(c => c || (e.request.mode === 'navigate' ? caches.match(url.pathname.startsWith('/diktat') ? '/diktat/' : '/') : undefined))
       .then(c => c || new Response('Offline', {status: 503})))
   );
 });

@@ -32,6 +32,7 @@ api/alibaba.js      Alibaba Qwen/Wan (Frankfurt): Auftrag anlegen, dann Abholen 
 api/tts.js          Vorlesen: Gemini-TTS-Stimmen und ElevenLabs über fal.ai, Ersatzkette
 api/imagen4.js      Google Imagen 4 (nicht in der Oberfläche erreichbar)
 manifest.json       PWA-Manifest (Symbole ?v=2, purpose "any")
+diktat/index.html   eigene Diktier-App (eigenständige Seite, eigenes Manifest diktat/manifest.json mit id/scope /diktat/, eigenes Symbol diktat-icon-*.png); Link in der Seitenleiste „Diktier-App“
 sw.js               Service Worker, Cache "zenoffice-claude-v4", /api/* nie gecacht; App-Seite „erst Netz, dann Speicher“ (früher umgekehrt → nach Updates zuerst alte Version); neuer SW lädt die Seite einmal neu
 vercel.json         Header; maxDuration 60 s für api/alibaba.js
 icon-192/512, apple-touch-icon, icon-180   buntes Symbol (Frau mit Feder) für Desktop und Startbildschirm
@@ -112,6 +113,12 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 - Vorlesen (`toggleSpeak`): Ist im Text etwas markiert (`lastEdRange`), wird nur die Markierung vorgelesen, sonst der ganze Text.
 - `#dtitle` zeigt im Textbereich den Platzhalter „Textname…“.
 - Werkzeugleiste: auf dem PC eine Reihe, auf dem Handy **zwei Reihen**, die gemeinsam seitlich wischen (`.tbi`/`.tbr`). Alle Funktionen bleiben erhalten.
+
+**Diktier-App (`/diktat/`, seit 2026-11-03 in Erprobung):**
+- Ziel: Sprache für jedes Eingabefeld (auch andere Apps) – sprechen, glätten, Zwischenablage, dort einfügen. Für das Tablet gebaut.
+- Beim Öffnen und beim Zurückkehren in die App beginnt sofort die Aufnahme (fertiger Text wandert in den Verlauf, unterbrochene Aufnahme läuft weiter). Knopf „Fertig“ → Claude Haiku glättet (Anweisung wie „Optimieren → Grammatik & Klang“ plus Diktat-Korrekturen) → automatisch kopiert. Scheitert das Kopieren (z. B. Safari ohne Antippen), erscheint der Hinweis auf „Kopieren“.
+- Weitere Knöpfe: Weiter (anhängen), Neu, Original/Geglättet, Neu glätten, Verlauf (letzte 10, localStorage `zo_dk_hist`). Schalter: DE/EN (`zo_dk_lang`), Glätten an/aus (`zo_dk_smooth`), Hell/Dunkel (`zo_dk_light`). Bildschirm bleibt beim Aufnehmen an (Wake Lock).
+- Nutzt denselben Service Worker `/sw.js` (Scope „/“) und `api/claude.js`; `dicText()` ist aus der Haupt-App kopiert.
 
 ## 4. Regeln & Constraints
 
