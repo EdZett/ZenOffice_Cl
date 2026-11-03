@@ -112,6 +112,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);display:flex;f
   <div class="row" id="acts">
     <button class="pill" onclick="copyNow()"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>Kopieren</button>
     <button class="pill hidden" id="origbtn" onclick="toggleOrig()"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span>Original</span></button>
+    <button class="pill hidden" id="playbtn" onclick="playLast()" title="Die letzte Premium-Aufnahme anhören"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg><span>Anhören</span></button>
     <button class="pill" onclick="toggleHist()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Verlauf</button>
   </div>
   <div id="hist"></div>
@@ -311,7 +312,7 @@ function toggleOrig(){
 }
 function clearAll(){
   if(state==='rec') stopEngine(true);
-  sttGen++;
+  sttGen++; lastAudio=[]; $('playbtn').classList.add('hidden');
   if(txt.value.trim()) addHist(txt.value.trim());
   txt.value=''; raw=smoothed=''; showOrig=false; $('origbtn').classList.add('hidden');
   setState('idle'); saveCur();
@@ -359,19 +360,23 @@ function toggleHist(){const b=$('hist');b.classList.toggle('vis');if(b.classList
 
 // ═══════════════════════════════════════
 // PREMIUM-ERKENNUNG: eigene Aufnahme → Gemini (api/stt.js)
-// Aufnahme in Stücken: bei einer Sprechpause oder spätestens nach 45 s wird ein Stück
-// als WAV (16 kHz, mono) verschickt – so bleibt jede Anfrage weit unter Vercels 4,5 MB und der Text kommt Stück für Stück.
+// Aufnahme in Stücken als WAV (16 kHz, mono) – jede Anfrage bleibt weit unter Vercels 4,5 MB.
+// Früher wurde nach jeder kurzen Pause ein 2–3-Sekunden-Schnipsel geschickt: ohne Zusammenhang riet Gemini
+// („glätten“ → „klettern“) und erfand sogar Sätze. Jetzt: lange Stücke (Pause > 2,5 s erst ab 15 s Sprache,
+// spätestens 55 s) plus der bisherige Text als Zusammenhang.
 // ═══════════════════════════════════════
-let pm=null, sttChain=Promise.resolve(), sttBusy=0, sttGen=0;
+let pm=null, sttChain=Promise.resolve(), sttBusy=0, sttGen=0, lastAudio=[];
 const STT_RATE=16000;
 async function startPremium(){
   if(!navigator.mediaDevices?.getUserMedia){setStat('Aufnehmen geht in diesem Browser nicht.','err');return}
   txt.blur(); setState('rec');
-  setStat('<span class="dot"></span>Premium hört zu … (Text erscheint nach jeder Sprechpause)');
+  setStat('<span class="dot"></span>Premium hört zu … (Text erscheint beim Anhalten oder nach längeren Pausen)');
   try{
-    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    // Echo-Unterdrückung aus (es läuft nichts mit), sie verzerrt Sprache; Rauschfilter und Pegel bleiben an
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:false,noiseSuppression:true,autoGainControl:true}});
     if(state!=='rec'){stream.getTracks().forEach(t=>t.stop());return}
-    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    // Der Browser rechnet sauber auf 16 kHz um (besser als eigenes Verkleinern); geht das nicht, normale Rate
+    let ctx; try{ctx=new AudioContext({sampleRate:STT_RATE})}catch(e){ctx=new (window.AudioContext||window.webkitAudioContext)()}
     const src=ctx.createMediaStreamSource(stream), proc=ctx.createScriptProcessor(4096,1,1);
     pm={stream,ctx,src,proc,buf:[],len:0,speech:0,silent:0,quiet:0};
     proc.onaudioprocess=e=>{
@@ -384,7 +389,7 @@ async function startPremium(){
       const secs=pm.len/ctx.sampleRate;
       // Vor dem ersten Wort nur die letzte Sekunde behalten (keine langen Stillen verschicken)
       if(!pm.speech){ while(pm.buf.length>1&&(pm.len-pm.buf[0].length)/ctx.sampleRate>1){pm.len-=pm.buf.shift().length} }
-      else if((pm.silent>1.5&&pm.speech>0.8)||secs>45) flushPremium();
+      else if((pm.silent>2.5&&pm.speech>15)||secs>55) flushPremium();
       // 2 Minuten nichts gesagt → Pause (Mikrofon nicht endlos offen)
       if(pm&&pm.quiet>120) pauseRec('Pause nach 2 Minuten Stille – weitersprechen mit dem Mikrofon.');
     };
@@ -400,9 +405,10 @@ function flushPremium(){
   pm.buf=[]; pm.len=0; pm.speech=0; pm.silent=0;
   if(!hadSpeech) return;
   const gen=sttGen; sttBusy++;
+  const wav=toWav16(parts,len,rate); lastAudio.push(wav); $('playbtn').classList.remove('hidden');
   sttChain=sttChain.then(async()=>{
     try{
-      const t=await transcribe(toWav16(parts,len,rate));
+      const t=await transcribe(wav, txt.value.trim().slice(-600));
       if(t&&gen===sttGen){ txt.value=join(txt.value.trim(),t); txt.scrollTop=txt.scrollHeight; saveCur() }
     }catch(e){ console.warn('Premium-Erkennung Fehler:',e); setStat('Premium-Erkennung ging nicht ('+esc(e.message)+') – oben auf „Browser“ umschalten.','err') }
     finally{ sttBusy--; if(!sttBusy&&state!=='rec'&&!/err/.test(stat.className)) setStat('Fertig erkannt – weitersprechen mit dem Mikrofon, fertig mit „'+(smoothOn?'Glätten & kopieren':'Kopieren')+'“.') }
@@ -429,10 +435,20 @@ function toWav16(parts,len,rate){
   const u=new Uint8Array(pcm.buffer); let bin=''; for(let i=0;i<u.length;i+=0x8000) bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));
   return btoa(bin);
 }
-async function transcribe(b64){
-  const r=await fetch('/api/stt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audio:b64,lang})});
+async function transcribe(b64,context){
+  const r=await fetch('/api/stt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audio:b64,lang,context})});
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error||'Fehler '+r.status)}
   return ((await r.json()).text||'').trim();
+}
+// Letzte Premium-Aufnahme anhören: zeigt, ob das Mikrofon sauber aufnimmt oder die Erkennung danebenliegt
+let playing=null;
+function playLast(){
+  if(playing){playing.pause();playing=null;$('playbtn').querySelector('span').textContent='Anhören';return}
+  if(!lastAudio.length) return;
+  const q=[...lastAudio]; $('playbtn').querySelector('span').textContent='Stopp';
+  const next=()=>{ if(!q.length){playing=null;$('playbtn').querySelector('span').textContent='Anhören';return}
+    playing=new Audio('data:audio/wav;base64,'+q.shift()); playing.onended=next; playing.play().catch(next) };
+  next();
 }
 function updEngine(){
   $('englbl').textContent=engine==='premium'?'Premium':'Browser';
@@ -443,7 +459,7 @@ function toggleEngine(){
   engine=engine==='premium'?'browser':'premium'; updEngine();
   try{localStorage.setItem('zo_dk_engine',engine)}catch(e){}
   setStat(engine==='premium'
-    ?'Premium: Google Gemini schreibt mit – genauer, Text kommt nach jeder Sprechpause, kostet pro Aufnahme etwas.'
+    ?'Premium: Google Gemini schreibt mit – genauer, Text kommt beim Anhalten oder nach längeren Pausen, kostet pro Aufnahme etwas.'
     :'Browser: die eingebaute Spracherkennung des Browsers – kostenlos, Text erscheint sofort beim Sprechen.');
 }
 

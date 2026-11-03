@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  const { audio, lang } = req.body || {};
+  const { audio, lang, context } = req.body || {};
   if (!audio) { res.status(400).json({ error: 'audio required' }); return; }
   const key = process.env.GOOGLE_KEY;
   if (!key) { res.status(500).json({ error: 'GOOGLE_KEY nicht konfiguriert' }); return; }
@@ -16,8 +16,12 @@ export default async function handler(req, res) {
     + 'Verwende korrekte Rechtschreibung, Groß- und Kleinschreibung und Zeichensetzung. '
     + 'Nichts zusammenfassen, nichts umformulieren, nichts weglassen, nichts hinzufügen. '
     + 'Gesprochene Satzzeichen-Befehle („Komma“, „Punkt“, „neuer Absatz“) setzt du als Zeichen bzw. Umbruch um. '
-    + 'Ist nichts Verständliches gesprochen, antworte mit einer leeren Zeile. Gib NUR den mitgeschriebenen Text zurück.';
+    + 'Buchstabiert der Sprecher ein Wort (z. B. „G L Ä T T E N“), schreibe das gemeinte Wort einmal aus. '
+    + 'Erfinde niemals Wörter oder Sätze: Ist eine Stelle unverständlich, schreibe sie so, wie sie klingt, oder lass sie weg. '
+    + 'Ist nichts Verständliches gesprochen, antworte mit einer leeren Zeile. Gib NUR den mitgeschriebenen Text zurück.'
+    + (context ? `\n\nZum Zusammenhang – so ging der Text bisher (NICHT wiederholen, nur zum besseren Verstehen):\n${String(context).slice(-600)}` : '');
   const body = { contents: [{ role: 'user', parts: [{ inline_data: { mime_type: 'audio/wav', data: audio } }, { text: prompt }] }] };
+  // Keine niedrige temperature: Gemini 3 rät davon ab (kann sich wiederholen)
 
   try {
     let r, data;
