@@ -114,12 +114,15 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 - `#dtitle` zeigt im Textbereich den Platzhalter „Textname…“.
 - Werkzeugleiste: auf dem PC eine Reihe, auf dem Handy **zwei Reihen**, die gemeinsam seitlich wischen (`.tbi`/`.tbr`). Alle Funktionen bleiben erhalten.
 
-**Diktier-App (`/diktat/`, seit 2026-11-03 in Erprobung):**
-- Ziel: Sprache für jedes Eingabefeld (auch andere Apps) – sprechen, glätten, Zwischenablage, dort einfügen. Für das Tablet gebaut.
-- Beim Öffnen und beim Zurückkehren in die App beginnt sofort die Aufnahme (fertiger Text wandert in den Verlauf, unterbrochene Aufnahme läuft weiter). Knopf „Fertig“ → Claude Haiku glättet nach der **persönlichen Diktierregel des Nutzers** (wörtlich übernommen: Stil, Wortwahl, Sprachmelodie, Struktur bewahren; nicht zusammenfassen, nicht umdeuten; unsichere Wörter stehen lassen statt raten). Die frühere Anweisung „Grammatik & Klang … seriös, aber modern“ schrieb ihn zu stark um (2026-11-03) → automatisch kopiert. Scheitert das Kopieren (z. B. Safari ohne Antippen), erscheint der Hinweis auf „Kopieren“.
-- Weitere Knöpfe: Weiter (anhängen), Neu, Original/Geglättet, Neu glätten, Verlauf (letzte 10, localStorage `zo_dk_hist`). Schalter: DE/EN (`zo_dk_lang`), Glätten an/aus (`zo_dk_smooth`), Hell/Dunkel (`zo_dk_light`). Bildschirm bleibt beim Aufnehmen an (Wake Lock).
-- Piepen: Android piept bei jedem Start/Stopp der Spracherkennung (lässt sich von einer Webseite nicht abschalten). Darum wird nach einer Pause nur neu gestartet, wenn in der Runde gesprochen wurde; eine stumme Runde beendet das Diktat (glätten + kopieren) bzw. geht ohne Text in Ruhe. Früher ständiger Neustart → Dauer-Piepen (2026-11-03).
-- Knopf „Installieren“ oben erscheint, sobald Chrome die App anbietet (`beforeinstallprompt`).
+**Diktier-App (`/diktat/`, seit 2026-11-03, in `main`):**
+- Ziel: Sprache für jedes Eingabefeld (auch andere Apps) – sprechen, von Hand nachbessern, glätten, Zwischenablage, dort einfügen. Für das Tablet gebaut. Der Nutzer installiert Apps über den **Huawei-Browser** (Chrome-Apps entfernt Huawei nach jedem Neustart).
+- Beim Öffnen startet sofort die Aufnahme. **Mikrofon = Aufnahme an/Pause**, es wird immer am vorhandenen Text weitergeschrieben; eine leere Seite gibt es nur über „Neuer Text“ (früher zwei verwirrende „Weiter“/„Start“-Wege, 2026-11-03). Vorhandener Text wird nie von selbst gelöscht.
+- **Text antippen während der Aufnahme = anhalten** (`pointerdown`), dann frei von Hand ändern (Tastatur), Mikrofon setzt am Ende fort.
+- Stille beendet nur die Aufnahme (Pause), **geglättet wird erst auf Knopfdruck**: großer grüner Knopf rechts „Glätten & kopieren“ (`goTap`; bei Glätten aus nur „Kopieren“).
+- Glätten: Claude Haiku mit der **persönlichen Diktierregel des Nutzers** (wörtlich: Stil, Wortwahl, Sprachmelodie, Struktur bewahren; nicht zusammenfassen, nicht umdeuten; unsichere Wörter stehen lassen statt raten). Dieselbe Regel steht in der Haupt-App als `MY_RULE` unter „Optimieren → Meine Diktierregel“. Die frühere Anweisung „Grammatik & Klang … seriös, aber modern“ schrieb ihn zu stark um.
+- Weitere Knöpfe: Kopieren, Original/Geglättet, Verlauf (letzte 15, localStorage `zo_dk_hist`; Antippen = übernehmen + kopieren; **einzeln löschen per Mülleimer oder Wisch nach links**). Laufender Text in `zo_dk_cur`, landet nach App-Schließen beim nächsten Öffnen im Verlauf. Schalter: DE/EN (`zo_dk_lang`), Glätten an/aus (`zo_dk_smooth`), Hell/Dunkel (`zo_dk_light`). Wake Lock beim Aufnehmen.
+- Piepen: Android piept bei jedem Start/Stopp der Spracherkennung (nicht abschaltbar). Neustart nach einer Runde nur, wenn gesprochen wurde; eine stumme Runde pausiert.
+- Knopf „Installieren“ oben, sobald der Browser die App anbietet (`beforeinstallprompt`). Manifest-Links mit `crossorigin="use-credentials"` (geschützte Vercel-Vorschau). Im Huawei-Browser verlangt die Vorschau eine Vercel-/Google-Anmeldung, die Google dort verbietet → nur von der festen Adresse installieren. Falls der Huawei-Browser wegen der schon installierten ZenOffice (Scope „/“) ablehnt: Diktier-App unter eigener Domain anbieten.
 - Nutzt denselben Service Worker `/sw.js` (Scope „/“) und `api/claude.js`; `dicText()` ist aus der Haupt-App kopiert.
 
 ## 4. Regeln & Constraints
