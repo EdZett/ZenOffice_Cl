@@ -446,10 +446,15 @@ function stopPremium(discard){
 // Float-Stücke → 16 kHz mono 16-Bit-WAV als Base64
 function toWav16(parts,len,rate){
   const all=new Float32Array(len); let o=0; parts.forEach(p=>{all.set(p,o);o+=p.length});
-  // Lautstärke angleichen: Manche Tablets nehmen sehr leise auf (Nutzer musste 100 % aufdrehen).
-  // Lautester Wert → 90 %, höchstens 20-fach verstärkt – hilft beim Anhören und der Erkennung.
-  let peak=0; for(let i=0;i<len;i++){const v=Math.abs(all[i]); if(v>peak) peak=v}
-  const gain=peak>0?Math.min(20,0.9/peak):1; if(gain>1.05) for(let i=0;i<len;i++) all[i]*=gain;
+  // Lautstärke angleichen: Das Huawei-Tablet nimmt sehr leise auf. Früher richtete sich die Verstärkung nach dem
+  // lautesten Einzelwert – ein Knacken (z. B. Antippen) verhinderte dann jede Verstärkung. Jetzt zählt der Sprachpegel:
+  // Lautstärke je 20-ms-Abschnitt, davon der lauteste Zehntel-Wert (= deutliche Sprache) → Zielpegel, höchstens 30-fach;
+  // Spitzen werden weich begrenzt statt hart abgeschnitten.
+  const fr=Math.max(1,Math.round(rate/50)), lv=[];
+  for(let i=0;i+fr<=len;i+=fr){let q=0;for(let j=i;j<i+fr;j++)q+=all[j]*all[j];lv.push(Math.sqrt(q/fr))}
+  lv.sort((a,b)=>a-b);
+  const speech=lv.length?lv[Math.floor(lv.length*0.9)]:0, gain=speech>1e-4?Math.min(30,0.2/speech):1;
+  if(gain>1.05) for(let i=0;i<len;i++) all[i]=Math.tanh(all[i]*gain);
   const n=Math.floor(len*STT_RATE/rate), pcm=new DataView(new ArrayBuffer(44+n*2)), r=rate/STT_RATE;
   const w=(p,s)=>{for(let i=0;i<s.length;i++)pcm.setUint8(p+i,s.charCodeAt(i))};
   w(0,'RIFF');pcm.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');pcm.setUint32(16,16,true);pcm.setUint16(20,1,true);pcm.setUint16(22,1,true);
