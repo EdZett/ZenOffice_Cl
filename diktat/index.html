@@ -181,7 +181,8 @@ txt.addEventListener('input',()=>{ if(showOrig||smoothed){ smoothed=''; showOrig
 function runEngine(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   rec=new SR(); rec.lang=lang; rec.continuous=true; rec.interimResults=true;
-  let heard=false; // wurde in dieser Runde etwas gesprochen?
+  let heard=false, t0=Date.now(); // wurde in dieser Runde etwas gesprochen? wann begann sie?
+  rec.onstart=()=>{t0=Date.now()};
   rec.onresult=e=>{
     const t=dicText(e.results); if(!t) return;
     heard=true;
@@ -194,7 +195,14 @@ function runEngine(){
   rec.onend=()=>{
     base=live;
     if(state!=='rec') return;
-    if(heard){ heard=false; setTimeout(()=>{ if(state==='rec'){ try{rec.start()}catch(e){setTimeout(()=>{if(state==='rec')runEngine()},300)} } },150); return }
+    if(heard){
+      heard=false;
+      // Der Huawei-Browser beendet die Runde schon nach ein, zwei Wörtern (Chrome erst nach einer längeren Pause).
+      // Darum sofort neu starten – früher 150 ms Wartezeit plus Startzeit, dabei gingen Wörter verloren.
+      // Nach mehreren sehr kurzen Runden: Hinweis auf Premium, das ohne An/Aus durchgehend aufnimmt.
+      if(Date.now()-t0<4000){ if(++shortRuns===3&&engine==='browser') setStat('<span class="dot"></span>Dieser Browser schaltet das Mikrofon nach jedem Satzteil ab – dabei können Wörter verloren gehen. Tipp: oben „Premium“ wählen, das nimmt durchgehend auf.','err') }
+      try{rec.start()}catch(e){ if(state==='rec') runEngine() }
+      return }
     // Stille: nur anhalten – geglättet wird erst auf Knopfdruck
     pauseRec(txt.value.trim()?'Pause – weitersprechen mit dem Mikrofon, fertig mit „'+(smoothOn?'Glätten & kopieren':'Kopieren')+'“.':'Nichts gehört – zum Sprechen aufs Mikrofon tippen.');
   };
@@ -383,6 +391,7 @@ function toggleHist(){const b=$('hist');b.classList.toggle('vis');if(b.classList
 // („glätten“ → „klettern“) und erfand sogar Sätze. Jetzt: lange Stücke (Pause > 2,5 s erst ab 15 s Sprache,
 // spätestens 55 s) plus der bisherige Text als Zusammenhang.
 // ═══════════════════════════════════════
+let shortRuns=0;
 let pm=null, sttChain=Promise.resolve(), sttBusy=0, sttGen=0, lastAudio=[];
 const STT_RATE=16000;
 async function startPremium(){
