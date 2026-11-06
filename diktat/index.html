@@ -159,7 +159,11 @@ function updGo(){$('golbl').innerHTML=smoothOn?'Glätten &amp;<br>kopieren':'Kop
 
 // ── Aufnahme ──
 // Mikrofon: Aufnahme an/aus. Es wird IMMER am vorhandenen Text weitergeschrieben – eine leere Seite gibt es nur über „Neuer Text“.
-function micTap(){ if(state==='rec') pauseRec(); else if(state!=='smooth') startRec(); }
+function micTap(){
+  // Premium beim Öffnen ohne Fingertipp: Der Browser hält die Tonverarbeitung an, bis man einmal tippt → dann nur fortsetzen
+  if(state==='rec'&&pm&&pm.ctx.state==='suspended'){ pm.ctx.resume(); setStat('<span class="dot"></span>Premium hört zu … (Text erscheint beim Anhalten oder nach längeren Pausen)'); return }
+  if(state==='rec') pauseRec(); else if(state!=='smooth') startRec();
+}
 function pauseRec(msg){
   stopEngine(); setState('idle'); saveCur();
   setStat(msg||'Pause – Text kannst du jetzt von Hand ändern. Weitersprechen: Mikrofon.');
@@ -417,10 +421,14 @@ async function startPremium(){
       // Vor dem ersten Wort nur die letzte Sekunde behalten (keine langen Stillen verschicken)
       if(!pm.speech){ while(pm.buf.length>1&&(pm.len-pm.buf[0].length)/ctx.sampleRate>1){pm.len-=pm.buf.shift().length} }
       else if((pm.silent>2.5&&pm.speech>15)||secs>55) flushPremium();
-      // 2 Minuten nichts gesagt → Pause (Mikrofon nicht endlos offen)
-      if(pm&&pm.quiet>120) pauseRec('Pause nach 2 Minuten Stille – weitersprechen mit dem Mikrofon.');
+      // 10 Sekunden nichts gesagt → Pause (Wunsch 2026-11-06; früher 2 Minuten). Kurzes Nachdenken bleibt möglich.
+      if(pm&&pm.quiet>10) pauseRec('Pause nach 10 Sekunden Stille – weitersprechen mit dem Mikrofon, fertig mit „'+(smoothOn?'Glätten & kopieren':'Kopieren')+'“.');
     };
     src.connect(proc); proc.connect(ctx.destination);
+    // Beim automatischen Start (ohne Fingertipp) lassen Browser die Tonverarbeitung oft ruhen – dann wurde nichts
+    // aufgenommen und auch die Pause nach Stille griff nicht. Versuchen fortzusetzen, sonst um einen Tipp bitten.
+    try{ctx.resume().catch(()=>{})}catch(e){}  // nicht abwarten: ohne Tipp bleibt das Versprechen offen
+    setTimeout(()=>{ if(pm&&pm.ctx===ctx&&ctx.state==='suspended') setStat('<span class="dot"></span>Bitte einmal aufs Mikrofon tippen, dann hört Premium zu.') },400);
   }catch(e){
     console.warn('Premium Aufnahme Fehler:',e); pm=null; setState('idle');
     setStat(e.name==='NotAllowedError'?'Bitte den Mikrofon-Zugriff erlauben – dann aufs Mikrofon tippen.':'Aufnahme ging nicht: '+esc(e.message),'err');
