@@ -1244,8 +1244,8 @@ function uploadTxt(e){
 // ═══════════════════════════════════════
 let lastClaudeStop='';
 // user: Text einer einzelnen Nachricht oder ein ganzer Gesprächsverlauf (Array von {role,content})
-async function callClaude(user,system='',maxTokens=2000){
-  const body={model:CLAUDE[energy],max_tokens:maxTokens,messages:Array.isArray(user)?user:[{role:'user',content:user}]};
+async function callClaude(user,system='',maxTokens=2000,model){
+  const body={model:model||CLAUDE[energy],max_tokens:maxTokens,messages:Array.isArray(user)?user:[{role:'user',content:user}]};
   if(system) body.system=system;
   const r=await fetch('/api/claude',{
     method:'POST',headers:{'Content-Type':'application/json'},
@@ -1504,7 +1504,7 @@ async function startPremiumMain(){
       if(Math.sqrt(q/d.length)>0.012){pmM.speech+=dur;pmM.silent=0;pmM.quiet=0} else {pmM.silent+=dur;pmM.quiet+=dur}
       pmM.buf.push(d); pmM.len+=d.length;
       if(!pmM.speech){ while(pmM.buf.length>1&&(pmM.len-pmM.buf[0].length)/ctx.sampleRate>1) pmM.len-=pmM.buf.shift().length }
-      else if((pmM.silent>2.5&&pmM.speech>15)||pmM.len/ctx.sampleRate>55) flushPremiumMain();
+      else if((pmM.silent>2&&pmM.speech>4)||pmM.len/ctx.sampleRate>55) flushPremiumMain();   // früher erst ab 15 s Sprache – „Achtung Befehl“ wirkte dann zu spät
       if(pmM&&pmM.quiet>10){ zoToast('Diktat angehalten nach 10 Sekunden Stille'); stopDic() }  // wie in der Diktier-App
     };
     src.connect(proc); proc.connect(ctx.destination);
@@ -1529,6 +1529,7 @@ function flushPremiumMain(){
       if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error||'Fehler '+r.status)}
       let t=((await r.json()).text||'').trim(), cmd='';
       const sc=t&&splitCmd(t); if(sc){t=sc.before; cmd=sc.cmd}
+      if(sc&&!cmd&&cmdPending) zoToast('„Achtung Befehl“ erkannt – sprich jetzt den Befehl',3000);
       if(cmd){ if(pmM) pmM.buf=[], pmM.len=0; setTimeout(()=>{ if(dictating) stopDic(); else if(span.isConnected&&!span._pend) pmCommit(span); execDictCmd(cmd) },0) }
       if(t&&span.isConnected){
         const first=span.dataset.n==='0';
@@ -1666,12 +1667,13 @@ function dicCommit(){
   const r=document.createRange(); r.setStartAfter(tn); r.collapse(true); lastEdRange=r;
   if(t.trim()) onEdit();
   if(cmd){ if(dictating) stopDic(); execDictCmd(cmd) }
-  else if(cmdPending&&dictating){ zoToast('Befehl? Ich höre …',2000) }
+  else if(cmdPending&&dictating){ zoToast('„Achtung Befehl“ erkannt – sprich jetzt den Befehl',3000) }
 }
 
 function stopDic(){
   dictating=false;
   dicCommit();
+  if(cmdPending&&!pmBusy){cmdPending=false; zoToast('Nach „Achtung Befehl“ kam kein Befehl – nichts geändert',3500)}
   stopPremiumMain();
   document.getElementById('editor').removeAttribute('inputmode');
   if(recognition){
@@ -1979,10 +1981,15 @@ async function kiPrecise(cmd){
     +'Antworte AUSSCHLIESSLICH mit JSON in dieser Form: {"aenderungen":[{"absatz":N,"alt":"…","neu":"…"}],"neue_absaetze":[{"nach":N,"text":"…"}],"antwort":"…"}. '
     +'Regeln: Ändere nur, was die Anweisung verlangt. „alt“ ist ein exakter, zusammenhängender Ausschnitt aus Absatz N – Zeichen für Zeichen wie dort, ohne Nummer und ohne ⟦ ⟧ ‸. '
     +'Für ganze Absätze ist „alt“ der ganze Absatz. Zum Löschen ist „neu“ leer. Betrifft die Anweisung den ganzen Text (z. B. übersetzen, kürzen), liefere je Absatz eine Änderung. '
-    +'„neue_absaetze“ fügt Absätze ein („nach“:0 = ganz am Anfang). Ist es eine Frage ohne Änderungswunsch, liefere nur „antwort“ (Deutsch) und keine Änderungen. Leere Teile weglassen.';
+    +'„neue_absaetze“ fügt Absätze ein („nach“:0 = ganz am Anfang). Ist es eine Frage ohne Änderungswunsch, liefere nur „antwort“ (Deutsch) und keine Änderungen. Leere Teile weglassen. '
+    +'Bei Änderungen KEINE „antwort“ – keine Erklärungen, keine Rückfragen. '
+    +'Die Anweisung ist oft GESPROCHEN und per Spracherkennung mitgeschrieben: Deute sie nach ihrem Sinn. Erläuterungen wie „ohne Punkt“, „kein Komma“, „nicht X, sondern Y“, „das Wort heißt …“ beschreiben, WIE die Stelle aussehen soll – sie gehören nie selbst in den Text. '
+    +'Beispiel: Text „… meine eigene. Heb noch nicht …“, Anweisung „Korrigiere: es heißt meine eigene App, kein Punkt und kein Heb“ → alt „meine eigene. Heb“, neu „meine eigene App“. '
+    +'Falsch erkannte Wörter im Text (ähnlich klingend) sind häufig – korrigiere sie, wenn die Anweisung das verlangt.';
   inpBusy(true);
   let r;
-  try{ r=await callClaude('Anweisung: '+cmd+'\n\nText:\n'+numbered,sys,8000) }
+  // Mindestens Flash (Sonnet): Haiku deutete gesprochene Korrekturen zu wörtlich (2026-11-08)
+  try{ r=await callClaude('Anweisung: '+cmd+'\n\nText:\n'+numbered,sys,8000,energy==='nano'?CLAUDE.flash:CLAUDE[energy]) }
   catch(e){ inpBusy(false); alert('Fehler: '+e.message); return true }
   inpBusy(false);
   let j=null; try{ j=JSON.parse(r.slice(r.indexOf('{'),r.lastIndexOf('}')+1)) }catch(e){}
@@ -2028,8 +2035,7 @@ async function kiPrecise(cmd){
   updStat(); pushUndo(); onEdit();
   const n=ops.length+ins.length;
   zoToast('✓ '+n+(n===1?' Stelle':' Stellen')+' geändert'+(miss?' · '+miss+' nicht gefunden':'')+' – „Zurück“ macht es rückgängig',3500);
-  if(j.antwort) openWissen(cmd,j.antwort);
-  return true;
+  return true;   // bei Änderungen kein Antwortfenster (die KI soll nicht plaudern)
 }
 function inpBusy(on){
   const ed=document.getElementById('editor');
