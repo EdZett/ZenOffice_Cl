@@ -2,7 +2,7 @@
 // Jedes Gerät meldet sich mit demselben persönlichen Sync-Schlüssel; daraus wird ein nicht erratbarer Ordner (SHA-256).
 // Ablage je Projekt:   <ordner>/p/<id>__<zeit>.json   (Zeit = letzte Änderung, so reicht die Liste für den Vergleich)
 // Gelöschte Projekte:  <ordner>/d/<id>__<zeit>        (Merkzettel, damit andere Geräte ebenfalls löschen)
-// Braucht die Vercel-Variable BLOB_READ_WRITE_TOKEN (entsteht beim Verbinden eines Blob-Speichers mit dem Projekt).
+// Braucht einen mit dem Projekt verbundenen Blob-Speicher: BLOB_STORE_ID (+ OIDC) oder BLOB_READ_WRITE_TOKEN.
 import crypto from 'crypto';
 
 const APIS = ['https://vercel.com/api/blob', 'https://blob.vercel-storage.com'];  // neu zuerst, alter Weg als Ersatz
@@ -16,9 +16,15 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) { res.status(503).json({ error: 'NOSTORE' }); return; }
-  const storeId = token.split('_')[3] || '';
+  // Zugang: neue Speicher verbindet Vercel nur noch mit BLOB_STORE_ID + OIDC-Ausweis (kommt bei jeder Anfrage
+  // im Kopf „x-vercel-oidc-token“ mit), ältere mit BLOB_READ_WRITE_TOKEN – beides geht.
+  const rw = process.env.BLOB_READ_WRITE_TOKEN;
+  const oidc = req.headers?.['x-vercel-oidc-token'] || process.env.VERCEL_OIDC_TOKEN;
+  const sid = (process.env.BLOB_STORE_ID || '').trim().replace(/^store_/, '');
+  let token, storeId;
+  if (rw) { token = rw; storeId = rw.split('_')[3] || ''; }
+  else if (oidc && sid) { token = oidc; storeId = sid; }
+  else { res.status(503).json({ error: 'NOSTORE' }); return; }
 
   const { key, op, id, data, ts } = req.body || {};
   if (!key || String(key).length < 8) { res.status(400).json({ error: 'Sync-Schlüssel fehlt oder ist zu kurz' }); return; }

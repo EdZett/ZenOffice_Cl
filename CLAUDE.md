@@ -10,7 +10,7 @@ ZenOffice Claude Edition ist eine KI-gestützte Office-App mit drei Bereichen: *
 - **Repository:** `EdZett/ZenOffice_Cl` (öffentlich), Hauptzweig `main`
 - **Lokal:** `C:\Users\Albert\antigravity\ZenOffice_Cl`
 - **Tech-Stack:** eine einzige `index.html` (HTML, CSS und Vanilla-JS, ohne Build-Schritt und ohne Framework) plus Vercel-Serverless-Funktionen in `api/` (Node, `export default handler`). Es gibt keine `package.json` und keine Abhängigkeiten.
-- **Schlüssel** liegen nur als Vercel-Umgebungsvariablen vor und sind nie im Code: `CLAUDE_KEY`, `GOOGLE_KEY`, `FAL_KEY`, `ALIBABA_KEY` (optional `ALIBABA_BASE_URL`), für den Geräte-Abgleich `BLOB_READ_WRITE_TOKEN` (entsteht beim Verbinden eines Vercel-Blob-Speichers, möglichst „Private“).
+- **Schlüssel** liegen nur als Vercel-Umgebungsvariablen vor und sind nie im Code: `CLAUDE_KEY`, `GOOGLE_KEY`, `FAL_KEY`, `ALIBABA_KEY` (optional `ALIBABA_BASE_URL`), für den Geräte-Abgleich der Blob-Speicher „zenoffice-sync“ (Private, FRA1, angelegt 2026-11-08): Vercel legt dafür nur noch `BLOB_STORE_ID` (+ eine `BLOB_…_KEY`) an und authentifiziert per OIDC (Kopf `x-vercel-oidc-token` je Anfrage) – kein `BLOB_READ_WRITE_TOKEN` mehr; `api/sync.js` kann beides.
 - **Schwesterprojekte** (nicht verwechseln): ZenOffice-Gold, ZenOffice_Studio, ZenOffice_Lab sowie die Gemini-Version unter `C:\Users\Albert\antigravity\ZenOffice` (React/TS). Die Gemini-Version diente als Vorbild für Maskieren, Magic Eraser und Erweitern (`src/components/AiImageModule.tsx`).
 
 **Aktueller Stand:** Alles Folgende ist veröffentlicht und läuft:
@@ -32,7 +32,7 @@ api/image.js        Gemini- und Flux-Bilder: Erzeugen, Referenzbilder, Bearbeite
 api/alibaba.js      Alibaba Qwen/Wan (Frankfurt): Auftrag anlegen, dann Abholen im Browser
 api/tts.js          Vorlesen: Gemini-TTS-Stimmen und ElevenLabs über fal.ai, Ersatzkette
 api/stt.js          Premium-Spracherkennung der Diktier-App (WAV → Gemini), Ersatzkette, maxDuration 60 s
-api/sync.js         Geräte-Abgleich über Vercel Blob (ohne Paket, Blob-API v13 wie @vercel/blob 2.8): list/get/put/del, braucht BLOB_READ_WRITE_TOKEN; maxDuration 60 s
+api/sync.js         Geräte-Abgleich über Vercel Blob (ohne Paket, Blob-API v13 wie @vercel/blob 2.8): list/get/put/del, Zugang per BLOB_STORE_ID+OIDC oder BLOB_READ_WRITE_TOKEN; maxDuration 60 s
 api/imagen4.js      Google Imagen 4 (nicht in der Oberfläche erreichbar)
 manifest.json       PWA-Manifest (Symbole ?v=2, purpose "any")
 diktat/index.html   eigene Diktier-App (eigenständige Seite, eigenes Manifest diktat/manifest.json mit id/scope /diktat/, eigenes Symbol diktat-icon-*.png); Link in der Seitenleiste „Diktier-App“
