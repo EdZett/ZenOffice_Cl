@@ -2,7 +2,8 @@
   "version": 2,
   "functions": {
     "api/alibaba.js": { "maxDuration": 60 },
-    "api/stt.js": { "maxDuration": 60 }
+    "api/stt.js": { "maxDuration": 60 },
+    "api/sync.js": { "maxDuration": 60 }
   },
   "headers": [
     {

@@ -10,7 +10,7 @@ ZenOffice Claude Edition ist eine KI-gestützte Office-App mit drei Bereichen: *
 - **Repository:** `EdZett/ZenOffice_Cl` (öffentlich), Hauptzweig `main`
 - **Lokal:** `C:\Users\Albert\antigravity\ZenOffice_Cl`
 - **Tech-Stack:** eine einzige `index.html` (HTML, CSS und Vanilla-JS, ohne Build-Schritt und ohne Framework) plus Vercel-Serverless-Funktionen in `api/` (Node, `export default handler`). Es gibt keine `package.json` und keine Abhängigkeiten.
-- **Schlüssel** liegen nur als Vercel-Umgebungsvariablen vor und sind nie im Code: `CLAUDE_KEY`, `GOOGLE_KEY`, `FAL_KEY`, `ALIBABA_KEY` (optional `ALIBABA_BASE_URL`).
+- **Schlüssel** liegen nur als Vercel-Umgebungsvariablen vor und sind nie im Code: `CLAUDE_KEY`, `GOOGLE_KEY`, `FAL_KEY`, `ALIBABA_KEY` (optional `ALIBABA_BASE_URL`), für den Geräte-Abgleich `BLOB_READ_WRITE_TOKEN` (entsteht beim Verbinden eines Vercel-Blob-Speichers, möglichst „Private“).
 - **Schwesterprojekte** (nicht verwechseln): ZenOffice-Gold, ZenOffice_Studio, ZenOffice_Lab sowie die Gemini-Version unter `C:\Users\Albert\antigravity\ZenOffice` (React/TS). Die Gemini-Version diente als Vorbild für Maskieren, Magic Eraser und Erweitern (`src/components/AiImageModule.tsx`).
 
 **Aktueller Stand:** Alles Folgende ist veröffentlicht und läuft:
@@ -32,6 +32,7 @@ api/image.js        Gemini- und Flux-Bilder: Erzeugen, Referenzbilder, Bearbeite
 api/alibaba.js      Alibaba Qwen/Wan (Frankfurt): Auftrag anlegen, dann Abholen im Browser
 api/tts.js          Vorlesen: Gemini-TTS-Stimmen und ElevenLabs über fal.ai, Ersatzkette
 api/stt.js          Premium-Spracherkennung der Diktier-App (WAV → Gemini), Ersatzkette, maxDuration 60 s
+api/sync.js         Geräte-Abgleich über Vercel Blob (ohne Paket, Blob-API v13 wie @vercel/blob 2.8): list/get/put/del, braucht BLOB_READ_WRITE_TOKEN; maxDuration 60 s
 api/imagen4.js      Google Imagen 4 (nicht in der Oberfläche erreichbar)
 manifest.json       PWA-Manifest (Symbole ?v=2, purpose "any")
 diktat/index.html   eigene Diktier-App (eigenständige Seite, eigenes Manifest diktat/manifest.json mit id/scope /diktat/, eigenes Symbol diktat-icon-*.png); Link in der Seitenleiste „Diktier-App“
@@ -63,6 +64,8 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
   - `elj` ElevenLabs Joy, deutsche Fassung aus der Stimmenbibliothek, per Voice-ID `DsY1TMHF6R6uylNq96bs` über fal `elevenlabs/tts/turbo-v2.5`. Ersetzt seit 2026-10-27 Brian (`elm`); Everett (`ele`) wurde auf Wunsch wieder entfernt. Gespeicherte alte Wahl wird zu Joy. Der Nutzer will zwei Frauenstimmen und eine Männerstimme.
   - Ersatzkette: gewählte Stimme, g38l, g38, g31 (Kore 3.1, nur noch stiller Ersatz), elj. Die Browserstimme kommt nur als allerletzter Notbehelf.
 - Speicher im Browser: localStorage `zo_prov` (Bildprogramm), `zo_voice`, `zo_projs`. Projekte und Bilder liegen in IndexedDB `zenoffice`.
+- **Geräte-Abgleich** (2026-11-08; Chrome-Sync gleicht Webseiten-Daten NICHT ab, Tablet nutzt zudem den Huawei-Browser): Einstellungen → „Geräte-Abgleich“, Sync-Schlüssel (localStorage `zo_sync_key`, mind. 8 Zeichen, „Neuen Schlüssel erzeugen“). `api/sync.js` legt unter `zo/<sha256(Schlüssel)>/p/<id>__<zeit>.json` je Projekt ab (Bilder als JPEG ≤ 1600 px als Data-URI), Löschungen als Merkzettel `d/<id>__<zeit>`. `syncNow()`: eigene Löschungen (localStorage `zo_sync_dels`) hochgeben → anderswo Gelöschtes hier entfernen → Neueres hochladen (`p.date`) → Neueres/Fehlendes holen; offener Text wird aufgefrischt, außer man schreibt gerade. Auslöser: Start, `setProjs` (4 s verzögert), Rückkehr in die App, alle 2 min, Knopf ⟳ neben „Meine Projekte“ (Farbe zeigt Zustand). Fehlt der Speicher: Meldung „Online-Speicher ist bei Vercel noch nicht eingerichtet“. Vercel Blob Hobby: ca. 1 GB frei, bei Überschreiten pausiert er (keine Kosten). Getestet nur mit nachgebautem Blob-Speicher.
+- **Projektliste** (`renderProjs`, 2026-11-08): Zeile = Titel + drei Symbolknöpfe 34 px (Touch 40 px): Speichern als Datei (blau), Archiv (gold), Löschen (rosé). „Auswählen“ → Häkchen, „Alle“, „Löschen (n)“ (`removeProjs`, gibt Löschung an den Abgleich weiter). Vorher verschachtelte Knöpfe mit kleinen Zeichen ↓ 📦 ✕.
 
 ## 3. Kernelemente & Anker-Code (nicht ohne Not ändern)
 
