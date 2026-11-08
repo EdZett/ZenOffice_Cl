@@ -114,6 +114,7 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 - Schriftgröße (`#fssel`, `setFS`): Klein 15 / Normal 19 / Groß 24 px (früher 13/15/19; die alte kleinste Stufe entfiel auf Wunsch), Standard Klein, Wahl gemerkt in localStorage `zo_fs`.
 - Vorlesen (`toggleSpeak`): Ist im Text etwas markiert (`lastEdRange`), wird nur die Markierung vorgelesen, sonst der ganze Text.
 - `#dtitle` zeigt im Textbereich den Platzhalter „Textname…“.
+- **Neuer Text** (`newText`, 2026-11-08): erster Knopf der Werkzeugleiste und „＋ Neu“ neben „Text“ in der Seitenleiste. Speichert den bisherigen Text (`flushSave`), legt sofort einen Eintrag „Neuer Text“ in „Meine Projekte“ an (wird beim Schreiben umbenannt), räumt nie beschriebene „Neuer Text“-Einträge auf. Vorher gab es keinen Weg zu einem neuen Text außer „Löschen“.
 - Werkzeugleiste: auf dem PC eine Reihe, auf dem Handy **zwei Reihen**, die gemeinsam seitlich wischen (`.tbi`/`.tbr`). Alle Funktionen bleiben erhalten.
 
 **Diktier-App (`/diktat/`, seit 2026-11-03, in `main`):**
@@ -131,7 +132,7 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 - **Huawei-Browser + „Browser“-Erkennung:** dessen Spracherkennung beendet die Runde nach ein, zwei Wörtern (Chrome erst nach längerer Pause) → ständiges An/Aus, beim Neustart gingen Wörter verloren. Neustart jetzt sofort (ohne 150 ms Wartezeit); nach 3 Runden unter 4 s Hinweis auf „Premium“ (nimmt durchgehend auf, kein An/Aus). Abschalten lässt sich das Verhalten des Huawei-Browsers nicht (2026-11-04).
 - Piepen: Android piept bei jedem Start/Stopp der Spracherkennung (nicht abschaltbar). Neustart nach einer Runde nur, wenn gesprochen wurde; eine stumme Runde pausiert.
 - Kein Knopf „Installieren“ mehr (auf Wunsch entfernt 2026-11-03: blieb nach der Installation sichtbar und funktionierte im Huawei-Browser nicht). Manifest-Links mit `crossorigin="use-credentials"` (geschützte Vercel-Vorschau). Im Huawei-Browser verlangt die Vorschau eine Vercel-/Google-Anmeldung, die Google dort verbietet → nur von der festen Adresse installieren. Falls der Huawei-Browser wegen der schon installierten ZenOffice (Scope „/“) ablehnt: Diktier-App unter eigener Domain anbieten.
-- **Pfeil „ZenOffice →“** oben (`toZen`): öffnet die Haupt-App in neuem Fenster mit `/#zo-text=<Text>` (gleiche Adresse, darum ohne Speicher-Umweg); `takeDiktat()` in `index.html` (nach `restoreLastText` und bei `hashchange`) legt daraus einen **neuen Text** an und speichert ihn – der zuletzt bearbeitete Text bleibt in den Projekten. Von dort geht es mit Seitenleiste, Optimieren, „→ Vision senden“ weiter (2026-11-08).
+- **Pfeil „ZenOffice →“** oben (`toZen`): öffnet die Haupt-App im **benannten Fenster** `zenoffice` (wird wiederverwendet, kein Fensterstapel; der Seitenleisten-Link „Diktier-App“ nutzt ebenso `target="zo-diktat"`) mit `/#zo-text=<Text>` (gleiche Adresse, darum ohne Speicher-Umweg); `takeDiktat()` in `index.html` (nach `restoreLastText` und bei `hashchange`) legt daraus einen **neuen Text** an und speichert ihn – der zuletzt bearbeitete Text bleibt in den Projekten. Von dort geht es mit Seitenleiste, Optimieren, „→ Vision senden“ weiter (2026-11-08).
 - Nutzt denselben Service Worker `/sw.js` (Scope „/“) und `api/claude.js`; `dicText()` ist aus der Haupt-App kopiert.
 
 ## 4. Regeln & Constraints

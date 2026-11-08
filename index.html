@@ -56,6 +56,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);height:100vh;o
 .ni:hover{background:var(--gold-glow);color:var(--gold);border-color:rgba(201,169,110,.2)}
 .ni.on{background:var(--gold-glow);color:var(--gold)}
 .ni.on::before{content:'';position:absolute;left:0;top:22%;bottom:22%;width:2px;background:var(--gold);border-radius:2px}
+.ni-new{margin-left:auto;padding:3px 9px;border-radius:999px;border:1px solid var(--border2);color:var(--sage);font-size:11px;line-height:1.4;transition:all .15s}
+.ni-new:hover{border-color:var(--sage);background:rgba(122,158,126,.12)}
 .ni-ic{width:30px;height:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .ni-ic svg{width:22px;height:22px}
 .sdiv{height:1px;background:var(--border);margin:10px 12px}
@@ -470,6 +472,7 @@ body.light select option:checked{color:#fff}
     <button class="ni on" onclick="swP('text',this)" id="n-text">
       <div class="ni-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3C5.9 3 5 3.9 5 5v14c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V8l-5-5H7Z" stroke="var(--sage)" stroke-width="1.3"/><path d="M14 3v4c0 .6.4 1 1 1h4" stroke="var(--sage)" stroke-width="1.3"/><line x1="8" y1="12" x2="16" y2="12" stroke="var(--sage)" stroke-width="1.2" stroke-linecap="round"/><line x1="8" y1="15" x2="14" y2="15" stroke="var(--sage)" stroke-width="1.2" stroke-linecap="round"/></svg></div>
       <span>Text</span>
+      <span class="ni-new" role="button" onclick="event.stopPropagation();newText()" title="Neuen, leeren Text beginnen (der bisherige bleibt gespeichert)">＋ Neu</span>
     </button>
     <button class="ni" onclick="swP('sheet',this)" id="n-sheet">
       <div class="ni-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="var(--rose)" stroke-width="1.3"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="var(--rose)" stroke-width="1.3"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="var(--rose)" stroke-width="1.3"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="var(--rose)" stroke-width="1.3"/></svg></div>
@@ -479,7 +482,7 @@ body.light select option:checked{color:#fff}
       <div class="ni-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3L13.5 9L19.5 9L14.7 13L16.5 19L12 15.5L7.5 19L9.3 13L4.5 9L10.5 9Z" stroke="var(--sky)" stroke-width="1.2" stroke-linejoin="round"/><circle cx="19" cy="5" r="1.2" stroke="var(--sky)" stroke-width="1"/><path d="M19 3L19 4M19 6L19 7" stroke="var(--sky)" stroke-width="1" stroke-linecap="round"/></svg></div>
       <span>Vision</span>
     </button>
-    <a class="ni" href="/diktat/" target="_blank" rel="noopener" title="Diktier-App: sprechen, glätten, kopieren – zum Einfügen in jedes Eingabefeld" style="text-decoration:none">
+    <a class="ni" href="/diktat/" target="zo-diktat" title="Diktier-App: sprechen, glätten, kopieren – zum Einfügen in jedes Eingabefeld" style="text-decoration:none">
       <div class="ni-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="var(--gold)" stroke-width="1.3"/><path d="M5.5 10.5v.5a6.5 6.5 0 0 0 13 0v-.5" stroke="var(--gold)" stroke-width="1.3" stroke-linecap="round"/><line x1="12" y1="17.5" x2="12" y2="21" stroke="var(--gold)" stroke-width="1.3" stroke-linecap="round"/></svg></div>
       <span>Diktier-App</span>
     </a>
@@ -518,6 +521,7 @@ body.light select option:checked{color:#fff}
     <div class="panel on" id="text-panel">
       <div id="tools">
       <div class="tb"><div class="tbi"><div class="tbr">
+        <button class="tbb ic" onclick="newText()" title="Neuer Text (der bisherige bleibt gespeichert)" aria-label="Neuer Text"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15h6"/></svg></button>
         <button class="tbb ic" onclick="doUndo()" title="Zurück (rückgängig)" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
         <button class="tbb ic" onclick="doRedo()" title="Vor (wiederholen)" id="redo-btn" aria-label="Vor"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
         <button class="tbb ic" onclick="copyText()" title="Kopieren: markierten Text (oder alles)" aria-label="Kopieren"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
@@ -990,6 +994,24 @@ function doAutoSave(){
   if(idx>=0){proj.archived=projs[idx].archived;projs[idx]=proj}else projs.unshift(proj);
   curTextId=proj.id; rememberText(proj.id);
   trimProjs(projs); setProjs(projs); renderProjs();
+}
+// Neuer, leerer Text (Knopf in der Werkzeugleiste und „＋ Neu“ neben „Text“ in der Seitenleiste).
+// Der bisherige Text ist gespeichert (flushSave). Der neue erscheint sofort als „Neuer Text“ in „Meine Projekte“;
+// sobald man schreibt, bekommt er seinen Namen aus den ersten Wörtern (oder dem Textnamen).
+function newText(){
+  flushSave();
+  swP('text',document.getElementById('n-text'));
+  if(window.innerWidth<=768) document.getElementById('sb').classList.add('hidden');
+  const ed=document.getElementById('editor');
+  // Leere „Neuer Text“-Einträge, die nie beschrieben wurden, aufräumen (außer dem gerade offenen)
+  const projs=getProjs().filter(x=>!(x.type==='text'&&!x.html&&x.id!==curTextId));
+  // Liegt schon ein unberührter „Neuer Text“ vorn, den wiederverwenden statt leere Einträge zu sammeln
+  let p=projs.find(x=>x.type==='text'&&x.id===curTextId&&!x.html&&!ed.innerText.trim());
+  if(!p){ p={id:newId(),title:'Neuer Text',html:'',date:new Date().toISOString(),type:'text'}; projs.unshift(p) }
+  trimProjs(projs); setProjs(projs); renderProjs();
+  document.getElementById('dtitle').value=''; panelTitles.text='';
+  ed.innerHTML=''; curTextId=p.id; rememberText(p.id); updStat(); pushUndo();
+  ed.focus();
 }
 // Geht die App in den Hintergrund oder wird geschlossen, sofort speichern (nicht erst nach der Wartezeit)
 function flushSave(){if(autoSaveTimer){clearTimeout(autoSaveTimer);autoSaveTimer=null;doAutoSave()}}

@@ -519,7 +519,9 @@ async function toZen(){
   if(sttBusy){ setStat('Sprache wird noch erkannt …'); await sttChain }
   const t=txt.value.trim(); if(t) addHist(t);
   const url='/'+(t?'#zo-text='+encodeURIComponent(t):'');
-  let w=null; try{ w=window.open(url,'_blank') }catch(e){}
+  // Benanntes Fenster: Ist ZenOffice von hier aus schon offen, wird dieses Fenster wiederverwendet
+  // (kein Stapel neuer Fenster beim Hin- und Herwechseln); dort übernimmt „hashchange“ den Text.
+  let w=null; try{ w=window.open(url,'zenoffice') }catch(e){}
   if(!w) location.href=url;   // Fenster blockiert → in diesem Fenster öffnen
 }
 
