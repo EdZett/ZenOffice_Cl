@@ -579,6 +579,7 @@ body.light select option:checked{color:#fff}
             <div class="ddl">Importieren</div>
             <button onclick="document.getElementById('up-img').click();cDD('dd-io')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Bild einfügen</button>
             <button onclick="document.getElementById('up-txt').click();cDD('dd-io')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Text / Markdown</button>
+            <button onclick="document.getElementById('up-aud').click();cDD('dd-io')"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Sprachnachricht / Audio → Text</button>
             <div class="dds"></div>
             <div class="ddl">Exportieren</div>
             <button onclick="exp('txt');cDD('dd-io')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Als Text (.txt)</button>
@@ -853,6 +854,7 @@ body.light select option:checked{color:#fff}
 </div>
 
 <input type="file" id="up-img" accept="image/*" style="display:none" onchange="uploadImg(event)">
+<input type="file" id="up-aud" accept="audio/*,.opus,.ogg,.oga,.m4a,.mp3,.wav,.aac,.flac,.webm,.amr,.3gp" style="display:none" onchange="if(this.files[0])audioToText(this.files[0]);this.value=''">
 <input type="file" id="up-txt" accept=".txt,.md,.markdown" style="display:none" onchange="uploadTxt(event)">
 <input type="file" id="ref-file" accept="image/*" multiple style="display:none" onchange="handleRef(event)">
 
@@ -1172,6 +1174,8 @@ function initEdDrop(){
   wrap.addEventListener('dragleave',e=>{if(!wrap.contains(e.relatedTarget))wrap.classList.remove('drop')});
   wrap.addEventListener('drop',async e=>{
     wrap.classList.remove('drop');
+    const aud=[...(e.dataTransfer.files||[])].find(f=>/^audio\//.test(f.type)||/\.(opus|ogg|oga|m4a|mp3|wav|aac|flac|amr)$/i.test(f.name));
+    if(aud){e.preventDefault(); audioToText(aud); return}
     const files=imgFiles(e.dataTransfer); if(!files.length) return;
     e.preventDefault();
     let rng=document.caretRangeFromPoint?.(e.clientX,e.clientY);
@@ -2103,6 +2107,56 @@ function splitCmd(t){
   return {before,cmd};
 }
 function execDictCmd(cmd){ if(!cmd) return; zoToast('Befehl: '+cmd,2500); setTimeout(()=>runVoiceCmd(cmd[0].toUpperCase()+cmd.slice(1)),60) }
+
+// ═══ SPRACHNACHRICHT / AUDIO → TEXT (2026-11-08) ═══
+// Datei (WhatsApp-.opus, .ogg, .mp3, .m4a, .wav …) → Gemini (api/stt.js, mode 'file'): Mitschrift in den gesprochenen
+// Sprachen (auch gemischt), mehrere Sprecher als „Person A/B/…“, darunter die deutsche Übersetzung → neuer Text.
+// Kurze Dateien gehen am Stück (bessere Sprecher-Zuordnung); lange/unbekannte Formate werden im Browser entpackt
+// und in 50-s-Stücken (16-kHz-WAV) geschickt – Vercel erlaubt nur ~4,5 MB pro Anfrage.
+const AUD_MIME={opus:'audio/ogg',ogg:'audio/ogg',oga:'audio/ogg',mp3:'audio/mp3',wav:'audio/wav',aac:'audio/aac',flac:'audio/flac'};
+async function audioToText(file){
+  const ext=(file.name.split('.').pop()||'').toLowerCase(), mime=AUD_MIME[ext];
+  showAI('Sprachnachricht wird umgewandelt …');
+  try{
+    let dur=0, pcm=null, rate=16000;
+    try{ // entpacken: liefert die Länge und ist der Weg für lange Dateien
+      const ac=new (window.AudioContext||window.webkitAudioContext)();
+      const buf=await ac.decodeAudioData(await file.arrayBuffer()); ac.close();
+      dur=buf.duration; rate=buf.sampleRate; pcm=new Float32Array(buf.length);
+      for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c); for(let i=0;i<d.length;i++) pcm[i]+=d[i]/buf.numberOfChannels}
+    }catch(e){ console.warn('Audio nicht entpackbar:',e) }
+    let out='';
+    if(mime&&file.size<=2.8e6&&(!dur||dur<=360)){
+      const b64=(await blobToDataUrl(file)).split(',')[1];
+      out=await sttFile(b64,mime,'');
+    } else if(pcm){
+      const step=50*rate, parts=[];
+      for(let o=0,k=1,n=Math.ceil(pcm.length/step);o<pcm.length;o+=step,k++){
+        showAI('Sprachnachricht wird umgewandelt … Teil '+k+' von '+n);
+        parts.push(await sttFile(dicWav16([pcm.subarray(o,o+step)],Math.min(step,pcm.length-o),rate),'audio/wav',parts.length?'Teil '+k+' von '+n+' einer längeren Aufnahme.':''));
+      }
+      // Abschnitte der Teile zusammenführen: erst alle Mitschriften, dann alle Übersetzungen
+      const sp=t=>{const m=t.split(/\n?\s*#*\s*Deutsche Übersetzung\s*:?\s*\n/i);return [m[0].replace(/^\s*#*\s*Mitschrift\s*:?\s*\n/i,'').trim(),(m[1]||'').trim()]};
+      const a=parts.map(sp);
+      out='Mitschrift\n'+a.map(x=>x[0]).join('\n')+'\n\nDeutsche Übersetzung\n'+a.map(x=>x[1]).filter(Boolean).join('\n');
+    } else throw new Error('Dieses Audioformat kann der Browser nicht öffnen. Bitte als .mp3, .ogg/.opus oder .wav versuchen.');
+    out=out.replace(/^#+\s*/gm,'').trim();
+    if(!out) throw new Error('Keine Sprache erkannt');
+    // als neuen Text anlegen (der bisherige bleibt gespeichert)
+    newText();
+    const name=file.name.replace(/\.[^.]+$/,'');
+    document.getElementById('dtitle').value='Sprachnachricht '+name; panelTitles.text=document.getElementById('dtitle').value;
+    const ed=document.getElementById('editor'); ed.innerText=out;
+    updStat(); pushUndo(); doAutoSave();
+    zoToast('✓ Sprachnachricht umgewandelt'+(dur?' ('+Math.round(dur)+' s)':''),3500);
+  }catch(e){ alert('Umwandeln ging nicht: '+e.message) }
+  finally{ hideAI() }
+}
+async function sttFile(b64,mime,note){
+  const r=await fetch('/api/stt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audio:b64,mime,mode:'file',context:note})});
+  const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(r.status===413?'Datei zu groß zum Senden':(j.error||'Fehler '+r.status));
+  return (j.text||'').trim();
+}
 
 function copyText(){
   const sel=window.getSelection();

@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  const { audio, lang, context } = req.body || {};
+  const { audio, lang, context, mode, mime } = req.body || {};
   if (!audio) { res.status(400).json({ error: 'audio required' }); return; }
   const key = process.env.GOOGLE_KEY;
   if (!key) { res.status(500).json({ error: 'GOOGLE_KEY nicht konfiguriert' }); return; }
@@ -20,7 +20,15 @@ export default async function handler(req, res) {
     + 'Erfinde niemals Wörter oder Sätze: Ist eine Stelle unverständlich, schreibe sie so, wie sie klingt, oder lass sie weg. '
     + 'Ist nichts Verständliches gesprochen, antworte mit einer leeren Zeile. Gib NUR den mitgeschriebenen Text zurück.'
     + (context ? `\n\nZum Zusammenhang – so ging der Text bisher (NICHT wiederholen, nur zum besseren Verstehen):\n${String(context).slice(-600)}` : '');
-  const body = { contents: [{ role: 'user', parts: [{ inline_data: { mime_type: 'audio/wav', data: audio } }, { text: prompt }] }] };
+  // Sprachnachricht/Audiodatei: gemischte Sprachen, Sprecher zuordnen, deutsche Übersetzung dazu
+  const filePrompt = 'Dies ist eine Sprachaufnahme (z. B. eine Sprachnachricht). Sie kann mehrere Sprachen gemischt enthalten. '
+    + 'Schreibe zuerst unter der Überschrift „Mitschrift“ wortgetreu mit, was gesagt wird – jeweils in der Sprache, in der es gesprochen wurde, mit korrekter Rechtschreibung und Zeichensetzung. '
+    + 'Sprechen mehrere Personen, beginne jeden Redebeitrag mit „Person A:“, „Person B:“ usw. (dieselbe Stimme = derselbe Buchstabe); bei nur einer Person keine Kennzeichnung. '
+    + 'Schreibe danach unter der Überschrift „Deutsche Übersetzung“ den vollständigen Inhalt auf Deutsch, mit derselben Personen-Kennzeichnung. Ist alles bereits Deutsch, steht dort nur „(Die Aufnahme ist bereits auf Deutsch.)“. '
+    + 'Erfinde nichts; Unverständliches als […]. Gib NUR diese zwei Abschnitte zurück, ohne weitere Kommentare.'
+    + (context ? `\n\nHinweis: ${String(context).slice(0, 200)}` : '');
+  const okMime = ['audio/wav', 'audio/ogg', 'audio/mp3', 'audio/aac', 'audio/flac'].includes(mime) ? mime : 'audio/wav';
+  const body = { contents: [{ role: 'user', parts: [{ inline_data: { mime_type: mode === 'file' ? okMime : 'audio/wav', data: audio } }, { text: mode === 'file' ? filePrompt : prompt }] }] };
   // Keine niedrige temperature: Gemini 3 rät davon ab (kann sich wiederholen)
 
   try {
