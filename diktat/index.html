@@ -95,6 +95,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn);display:flex;f
   <div class="hd">
     <img src="/diktat-icon-192.png?v=1" alt="">
     <div class="ttl">Diktat<small>ZenOffice</small></div>
+    <button class="pill sm on" onclick="toZen()" title="Text in ZenOffice öffnen – dort weiterbearbeiten oder ein Bild daraus machen">ZenOffice
+      <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
     <button class="pill sm" id="engbtn" onclick="toggleEngine()" title="Wer schreibt deine Sprache mit? Browser (kostenlos, Text erscheint sofort) oder Premium (Google Gemini, genauer, kostet etwas)">
       <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg><span id="englbl">Browser</span></button>
     <button class="pill sm" id="langbtn" onclick="toggleLang()" title="Sprache">DE</button>
@@ -508,6 +510,17 @@ function toggleEngine(){
   setStat(engine==='premium'
     ?'Premium: Google Gemini schreibt mit – genauer, Text kommt beim Anhalten oder nach längeren Pausen, kostet pro Aufnahme etwas.'
     :'Browser: die eingebaute Spracherkennung des Browsers – kostenlos, Text erscheint sofort beim Sprechen.');
+}
+
+// ── Pfeil „ZenOffice“: Text an die große App übergeben (gleiche Adresse → als /#zo-text=… im neuen Fenster) ──
+// Dort entsteht daraus ein neuer Text im Textbereich; Seitenleiste, Optimieren, „→ Vision senden“ usw. stehen bereit.
+async function toZen(){
+  if(state==='rec') pauseRec();
+  if(sttBusy){ setStat('Sprache wird noch erkannt …'); await sttChain }
+  const t=txt.value.trim(); if(t) addHist(t);
+  const url='/'+(t?'#zo-text='+encodeURIComponent(t):'');
+  let w=null; try{ w=window.open(url,'_blank') }catch(e){}
+  if(!w) location.href=url;   // Fenster blockiert → in diesem Fenster öffnen
 }
 
 // ── Einstellungen ──

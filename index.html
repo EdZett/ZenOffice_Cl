@@ -1824,7 +1824,24 @@ async function initProjs(){
   PROJS.forEach(p=>{if(!p.id)p.id=newId()});
   renderProjs();
   restoreLastText();
+  takeDiktat();
 }
+// Text aus der Diktier-App (/diktat/, Pfeil „ZenOffice“) übernehmen: kommt als /#zo-text=… an.
+// Wird als NEUER Text angelegt und gespeichert – der zuletzt bearbeitete Text bleibt unberührt in den Projekten.
+function takeDiktat(){
+  const m=location.hash.match(/^#zo-text=([\s\S]*)$/); if(!m) return;
+  let t=''; try{t=decodeURIComponent(m[1])}catch(e){}
+  history.replaceState(null,'',location.pathname+location.search);
+  if(!t.trim()) return;
+  flushSave();
+  swP('text',document.getElementById('n-text'));
+  const ed=document.getElementById('editor');
+  document.getElementById('dtitle').value=''; if(typeof panelTitles==='object') panelTitles.text='';
+  ed.innerText=t; curTextId=null; rememberText(null);
+  updStat(); pushUndo(); doAutoSave();
+  zoToast('✓ Text aus der Diktier-App übernommen und als neuer Text gespeichert',3500);
+}
+window.addEventListener('hashchange',()=>{ if(/^#zo-text=/.test(location.hash)) takeDiktat() });
 function blobToDataUrl(b){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(b)})}
 async function urlToBlob(url){const r=await fetch(url);if(!r.ok)throw new Error('Bild nicht ladbar');return await r.blob()}
 async function toDataUrl(url){if(!url||url.startsWith('data:'))return url;return blobToDataUrl(await urlToBlob(url))}
