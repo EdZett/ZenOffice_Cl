@@ -355,7 +355,7 @@ function clearAll(){
   if(txt.value.trim()) addHist(txt.value.trim());
   txt.value=''; raw=smoothed=''; showOrig=false; $('origbtn').classList.add('hidden');
   setState('idle'); saveCur();
-  startRec();
+  setStat('Leere Seite – zum Sprechen aufs Mikrofon tippen.');
 }
 // Aktueller Text wird laufend gemerkt – schließt das Gerät die App, landet er beim nächsten Öffnen im Verlauf
 function saveCur(){try{localStorage.setItem('zo_dk_cur',txt.value)}catch(e){}}
@@ -564,20 +564,17 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
 async function keepAwake(){try{if('wakeLock'in navigator&&!wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>wakeLock=null)}}catch(e){}}
 function releaseAwake(){try{wakeLock?.release()}catch(e){} wakeLock=null}
 
-// ── Öffnen = sofort aufnehmen ──
-// Beim Zurückkehren in die App: eine laufende Aufnahme geht weiter; ist die Seite leer, beginnt sie sofort.
-// Vorhandener Text wird nie von selbst gelöscht.
-let wasRec=false;
+// ── Öffnen: Mikrofon bleibt AUS, bis man aufs Mikrofon tippt ──
+// (Wunsch 2026-11-08: das sofortige Aufnehmen beim Öffnen/Zurückkehren setzte unter Druck.)
+// Geht die App während einer Aufnahme in den Hintergrund, wird nur angehalten – weiter geht es per Tipp.
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){ wasRec=state==='rec'; if(wasRec) pauseRec(); return }
-  if(state==='smooth') return;
-  if(wasRec||!txt.value.trim()) startRec();
-  else setStat('Weitersprechen: Mikrofon · leere Seite: „Neuer Text“');
+  if(document.hidden){ if(state==='rec') pauseRec(); return }
+  if(state==='idle') setStat(txt.value.trim()?'Weitersprechen: Mikrofon · leere Seite: „Neuer Text“':'Bereit – zum Sprechen aufs Mikrofon tippen.');
 });
 window.addEventListener('load',()=>{
-  // Text der letzten Sitzung (z. B. App vom Gerät geschlossen) in den Verlauf legen, dann frisch beginnen
+  // Text der letzten Sitzung (z. B. App vom Gerät geschlossen) in den Verlauf legen, dann mit leerer Seite beginnen
   try{const c=(localStorage.getItem('zo_dk_cur')||'').trim(); if(c) addHist(c); localStorage.removeItem('zo_dk_cur')}catch(e){}
-  startRec();
+  setStat('Bereit – zum Sprechen aufs Mikrofon tippen.');
 });
 
 if('serviceWorker' in navigator && !location.hostname.includes('claudeusercontent')){
