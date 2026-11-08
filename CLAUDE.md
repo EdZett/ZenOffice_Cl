@@ -90,6 +90,8 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 - Die Anweisungen an die Modelle (`editPrompts` in `api/image.js` und `api/alibaba.js`) verlangen ausdrücklich eine **klar sichtbare Änderung**. Ältere „ändere nur minimal“-Formulierungen lieferten fast identische Bilder.
 - Bei Referenzbildern ohne Bearbeiten dient die Referenz nur für Identität und Stil. Die Wünsche des Nutzers haben Vorrang.
 
+**Bild-Projekte** (2026-11-08, wie Texte): Ein Bild-Projekt = alle Karten der Vision-Fläche (erstes Bild + Bearbeitungen/Varianten), `p.cards=[{key|url,prompt,badge}]` (alt: `p.imgKey`, wird beim nächsten Speichern umgewandelt; `visProjCards`). Fertige Bilder (Erstellen, Bearbeiten, eigenes Bild) speichert `visSaved` automatisch (`saveVisProj`), Name = Feld oben (`autoSaveTitle` speichert jetzt auch in Vision). „＋ Neu“ neben „Vision“ und erster Knopf der Anweisungs-Leiste (`newVision`) → leere Fläche. Klick auf ein Projekt (`showVisProj`) leert die Fläche und zeigt NUR dessen Bilder (früher sammelten sich alle angeklickten Bilder). Zurück/Vor ändern das Projekt mit. Letztes Bild-Projekt kommt beim Start zurück (localStorage `zo_lastvis`). Während Bilder entstehen, kein Projektwechsel (`visBusy`). Karten-Knopf heißt jetzt nur „Download“. Abgleich schickt alle Bilder eines Projekts als JPEG (max. ~4 MB je Projekt).
+
 **Weitere Vision-Funktionen:**
 - `analyzeV()` schickt das Bild selbst (verkleinert, Base64) an Claude. Die ausführliche deutsche Analyse in 5 Abschnitten und die Zeile `PROMPT:` erscheinen im Fenster `#wissen-ovl`. Der Knopf „Prompt übernehmen“ (`analysisToVision`) setzt den Prompt ins Anweisungsfeld.
 - Zurück/Vor:
