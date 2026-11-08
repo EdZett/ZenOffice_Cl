@@ -170,13 +170,19 @@ function pauseRec(msg){
   stopEngine(); setState('idle'); saveCur();
   setStat(msg||'Pause – Text kannst du jetzt von Hand ändern. Weitersprechen: Mikrofon.');
 }
+// Schreibstelle: Steht der Cursor mitten im Text, wird dort weiterdiktiert (Wunsch 2026-11-08 – vorher immer ans Ende).
+// Ohne gesetzten Cursor steht er nach jeder Änderung durch die App am Ende → dann wie bisher anhängen.
+let tail='', insPos=-1;
+const glue=a=>a&&!/^[\s.,;:!?)]/.test(a)?' '+a:a;   // Leerzeichen vor dem Rest, falls nötig
+function caretPos(){ const v=txt.value, p=txt.selectionEnd; return (p==null||p>=tailTrim(v).length)?v.length:p }
 function startRec(){
   if(state==='rec') return;
+  insPos=caretPos();
   if(engine==='premium'){ startPremium(); return }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){setStat('Spracheingabe geht hier nicht – bitte Chrome verwenden oder oben „Premium“ wählen.','err');return}
   txt.blur();
-  base=tailTrim(txt.value); live=base;
+  base=tailTrim(txt.value.slice(0,insPos)); tail=txt.value.slice(insPos); live=base;
   setState('rec');
   setStat('<span class="dot"></span>Ich höre zu … (Text antippen = anhalten und von Hand ändern)');
   runEngine();
@@ -193,7 +199,8 @@ function runEngine(){
     const t=dicText(e.results); if(!t) return;
     heard=true;
     live=join(base,t);
-    txt.value=live; txt.scrollTop=txt.scrollHeight; saveCur();
+    txt.value=live+glue(tail); txt.setSelectionRange(live.length,live.length);
+    if(!tail) txt.scrollTop=txt.scrollHeight; saveCur();
   };
   // Chrome (v. a. Android) beendet nach einer Sprechpause von selbst; jeder Neustart piept.
   // Darum nur weiterhören, wenn in dieser Runde gesprochen wurde. Endet eine Runde stumm,
@@ -445,11 +452,15 @@ function flushPremium(){
   const wav=toWav16(parts,len,rate); lastAudio.push(wav); $('playbtn').classList.remove('hidden');
   sttChain=sttChain.then(async()=>{
     try{
-      const t=await transcribe(wav, txt.value.trim().slice(-600));
+      const t=await transcribe(wav, txt.value.slice(0,insPos<0?undefined:insPos).trim().slice(-600));
       if(t&&gen===sttGen){
-        // Am Ende anhängen, ohne eine Markierung oder die Schreibstelle des Nutzers zu zerstören
-        const v=txt.value, nv=join(tailTrim(v),t), keep=tailTrim(v).length;
-        txt.setRangeText(nv.slice(keep),keep,v.length,'preserve'); txt.scrollTop=txt.scrollHeight; saveCur() }
+        // An der Schreibstelle einfügen (Ende oder Cursor), ohne eine Markierung des Nutzers zu zerstören
+        const v=txt.value, p=(insPos<0||insPos>v.length)?v.length:insPos;
+        const before=tailTrim(v.slice(0,p)), after=v.slice(p), nb=join(before,t);
+        const atEnd=!after.trim();
+        txt.setRangeText(nb.slice(before.length)+(atEnd?'':glue(after).slice(0,glue(after).length-after.length)),before.length,atEnd?v.length:p,'preserve');
+        insPos=atEnd?txt.value.length:nb.length;
+        if(atEnd) txt.scrollTop=txt.scrollHeight; saveCur() }
     }catch(e){ console.warn('Premium-Erkennung Fehler:',e); setStat('Premium-Erkennung ging nicht ('+esc(e.message)+') – oben auf „Browser“ umschalten.','err') }
     finally{ sttBusy--; if(!sttBusy&&state!=='rec'&&!/err/.test(stat.className)) setStat('Fertig erkannt – weitersprechen mit dem Mikrofon, fertig mit „'+(smoothOn?'Glätten & kopieren':'Kopieren')+'“.') }
   });

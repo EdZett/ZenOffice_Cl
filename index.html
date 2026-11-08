@@ -1432,15 +1432,11 @@ function startDicEngine(){
 
   recognition.onend=function(){
     dicCommit();
+    // Sofort neu starten (früher 150 ms Pause): Der Huawei-Browser beendet die Runde nach ein, zwei Wörtern,
+    // in der Wartezeit gingen Wörter verloren (wie in der Diktier-App, 2026-11-08)
     if(dictating){
-      setTimeout(function(){
-        if(dictating){
-          try{ recognition.start(); }
-          catch(e2){
-            setTimeout(function(){ if(dictating) startDicEngine(); },300);
-          }
-        }
-      },150);
+      try{ recognition.start(); }
+      catch(e2){ if(dictating) startDicEngine(); }
     }
   };
 
