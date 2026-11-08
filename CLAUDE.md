@@ -1,6 +1,6 @@
 # ZenOffice · Claude Edition
 
-Arbeitssprache mit dem Nutzer ist **Deutsch**. Stand dieser Beschreibung: 2026-10-24.
+Arbeitssprache mit dem Nutzer ist **Deutsch**. Stand dieser Beschreibung: 2026-11-08.
 
 ## 1. Projekt-Übersicht & Ziel
 
@@ -20,6 +20,7 @@ ZenOffice Claude Edition ist eine KI-gestützte Office-App mit drei Bereichen: *
 - Vision mit drei Bildprogrammen (Gemini, Flux, Alibaba) in je drei Stufen
 - Bildanalyse, Bearbeitungswerkzeuge sowie Zurück/Vor
 - Neues Desktop-Symbol
+- Diktier-App `/diktat/` (eigene App, Premium-Erkennung mit Gemini, Glätten in Stufen)
 
 ## 2. Architektur & Module
 
@@ -34,8 +35,8 @@ api/stt.js          Premium-Spracherkennung der Diktier-App (WAV → Gemini), Er
 api/imagen4.js      Google Imagen 4 (nicht in der Oberfläche erreichbar)
 manifest.json       PWA-Manifest (Symbole ?v=2, purpose "any")
 diktat/index.html   eigene Diktier-App (eigenständige Seite, eigenes Manifest diktat/manifest.json mit id/scope /diktat/, eigenes Symbol diktat-icon-*.png); Link in der Seitenleiste „Diktier-App“
-sw.js               Service Worker, Cache "zenoffice-claude-v4", /api/* nie gecacht; App-Seite „erst Netz, dann Speicher“ (früher umgekehrt → nach Updates zuerst alte Version); neuer SW lädt die Seite einmal neu
-vercel.json         Header; maxDuration 60 s für api/alibaba.js
+sw.js               Service Worker, Cache "zenoffice-claude-v5" (Offline-Ersatz für /diktat/ eigene Seite), /api/* nie gecacht; App-Seite „erst Netz, dann Speicher“ (früher umgekehrt → nach Updates zuerst alte Version); neuer SW lädt die Seite einmal neu
+vercel.json         Header (auch diktat/manifest.json); maxDuration 60 s für api/alibaba.js und api/stt.js
 icon-192/512, apple-touch-icon, icon-180   buntes Symbol (Frau mit Feder) für Desktop und Startbildschirm
 icon-maskable-192/512                      randlose Handy-Fassung (purpose "maskable"): ohne Silberrahmen, dunkelbrauner Rand, Motiv in der 80-%-Sicherheitszone – sonst füllt Android den runden Rahmen weiß auf
 favicon.ico, icon-32, icon.png             altes dezentes Sepia-Symbol (Browser-Tab), absichtlich so
@@ -120,8 +121,8 @@ Jedes Modell hat einen älteren Namen als Ersatz. Ist ein neuer Name unbekannt (
 - Beim Öffnen startet sofort die Aufnahme. **Mikrofon = Aufnahme an/Pause**, es wird immer am vorhandenen Text weitergeschrieben; eine leere Seite gibt es nur über „Neuer Text“ (früher zwei verwirrende „Weiter“/„Start“-Wege, 2026-11-03). Vorhandener Text wird nie von selbst gelöscht.
 - **Text antippen während der Aufnahme = anhalten** (`pointerdown`), dann frei von Hand ändern (Tastatur), Mikrofon setzt am Ende fort.
 - Stille beendet nur die Aufnahme (Pause), **geglättet wird erst auf Knopfdruck**: großer grüner Knopf rechts „Glätten & kopieren“ (`goTap`; bei Glätten aus nur „Kopieren“).
-- Glätten: Claude Haiku mit der **persönlichen Diktierregel des Nutzers** (wörtlich: Stil, Wortwahl, Sprachmelodie, Struktur bewahren; nicht zusammenfassen, nicht umdeuten; unsichere Wörter stehen lassen statt raten). Dieselbe Regel steht in der Haupt-App als `MY_RULE` unter „Optimieren → Meine Diktierregel“. Die frühere Anweisung „Grammatik & Klang … seriös, aber modern“ schrieb ihn zu stark um.
-- Weitere Knöpfe: Kopieren, Original/Geglättet, Verlauf (letzte 15, localStorage `zo_dk_hist`; Antippen = übernehmen + kopieren; **einzeln löschen per Mülleimer oder Wisch nach links**). Laufender Text in `zo_dk_cur`, landet nach App-Schließen beim nächsten Öffnen im Verlauf. Schalter: DE/EN (`zo_dk_lang`), Glätten an/aus (`zo_dk_smooth`), Hell/Dunkel (`zo_dk_light`). Wake Lock beim Aufnehmen.
+- Glätten: Claude Haiku in Stufen (siehe „Glätten in Stufen“ unten). Die persönliche Diktierregel des Nutzers (`MY_RULE`) gibt es nur noch in der Haupt-App unter „Optimieren → Meine Diktierregel“.
+- Weitere Knöpfe: Kopieren, Original/Geglättet, Verlauf (letzte 15, localStorage `zo_dk_hist`; Antippen = übernehmen + kopieren; **einzeln löschen per Mülleimer oder Wisch nach links**). Laufender Text in `zo_dk_cur`, landet nach App-Schließen beim nächsten Öffnen im Verlauf. Schalter: DE/EN (`zo_dk_lang`), Glätten-Stufe (`zo_dk_smooth`), Hell/Dunkel (`zo_dk_light`). Wake Lock beim Aufnehmen.
 - **Erkennung wählbar** (Knopf oben „Browser“/„Premium“, localStorage `zo_dk_engine`, Standard Browser): Browser = Web Speech API des Browsers (kostenlos, live; im Huawei-Browser schwächer, z. B. Kleinschreibung). Premium = eigene Aufnahme (`getUserMedia` + ScriptProcessor), in langen Stücken (Pause > 2,5 s erst ab 15 s Sprache, spätestens 55 s, sonst beim Anhalten) als 16-kHz-WAV (AudioContext mit sampleRate 16000, Echo-Unterdrückung aus) an `api/stt.js` → Gemini schreibt wortgetreu mit (Ersatzkette gemini-3.6-flash → gemini-3-flash-preview → gemini-2.5-flash), bisheriger Text (600 Zeichen) geht als Zusammenhang mit; Knopf „Anhören“ spielt die Aufnahme ab (zur Unterscheidung Mikrofon- vs. Erkennungsproblem). Früher 2–3-s-Schnipsel ohne Zusammenhang → Gemini riet („glätten“ → „klettern“) und erfand Sätze (2026-11-03). Kostet pro Aufnahme etwas. Stücke laufen nacheinander (`sttChain`), „Neuer Text“ verwirft Laufendes (`sttGen`). Beim automatischen Start ohne Fingertipp ruht der AudioContext (Autoplay-Regel) → Hinweis „einmal aufs Mikrofon tippen“, `micTap` setzt dann nur fort. Nach **10 s** Stille Pause (Wunsch 2026-11-06, früher 2 min; Stille = Pegel unter 0,012). Premium ist für den Nutzer im Huawei-Browser die einzige brauchbare Erkennung. Seit 2026-11-03, noch nicht mit echtem Gemini getestet.
 - Nach dem Glätten zeigt die Statuszeile, wie viele Wörter geändert wurden (`diffWords`) bzw. „Nichts zu glätten“ – Premium liefert oft schon sauberen Text, dann wirkte Glätten wie wirkungslos (2026-11-03). „Anhören“ spielt die eigene Sprachaufnahme ab, nicht den geglätteten Text (Nutzer hatte das verwechselt); 16 kHz reicht, Gemini rechnet Audio ohnehin auf 16 kHz herunter. Aufnahme war auf dem Huawei-Tablet sehr leise → `toWav16` gleicht die Lautstärke nach dem Sprachpegel an (90.-Perzentil der 20-ms-Pegel → 0,2, max. 30-fach, weiche Begrenzung per tanh); die erste Fassung nach dem Spitzenwert wirkte nicht, weil ein Knacken die Verstärkung verhinderte. Installation: Huawei-Browser legt nur eine Verknüpfung an (die bleibt – empfohlen). Chrome läuft beim Nutzer in **GBox** (Google-Hülle auf Huawei); dort angelegte Web-Apps verschwanden teils nach Neustart (Diktat, KI-Hub; Vercel/Venice/Copilot blieben) – Ursache liegt bei GBox/Huawei, nicht im Code. Berechtigung „Verknüpfungen installieren“ ist vorhanden.
 - **Glätten in Stufen** (Knopf oben, zyklisch, `smoothLvl`, localStorage `zo_dk_smooth` 0/1/2): Aus · **Sanft** (verbessert holprige/ungenaue Formulierungen, Gedankengang und Tonfall bleiben, plus Schriftdeutsch- und Diktat-Regeln) · **Gründlich** (wörtlich die Anweisung von „Optimieren → Grammatik & Klang“ der Haupt-App, nur plus „Absätze erhalten“ – gefällt dem Nutzer am besten). Seine wörtliche Diktierregel steht nur noch in der Haupt-App („Meine Diktierregel“). Umgestellt 2026-11-03 auf Wunsch. Beide mit Haiku (wie „Optimieren“ bei Nano).
