@@ -1,5 +1,6 @@
 // ZenOffice Claude Edition – Service Worker
-const CACHE = 'zenoffice-claude-v5';
+const CACHE = 'zenoffice-claude-v6';
+const SHARE = 'zo-share';   // Ablage für aus anderen Apps Geteiltes (bleibt beim Aufräumen alter Caches erhalten)
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -10,13 +11,29 @@ self.addEventListener('activate', e => {
   // Alte Caches löschen
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE && k !== SHARE).map(k => caches.delete(k)))
     )
   );
 });
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
+
+  // „Teilen an ZenOffice“ (z. B. WhatsApp-Sprachnachricht): Android schickt die Datei per POST hierher.
+  // Datei bzw. Text kurz ablegen und die App öffnen, die es dann übernimmt (takeShared in index.html).
+  if (url.pathname === '/share-target' && e.request.method === 'POST') {
+    e.respondWith((async () => {
+      try {
+        const fd = await e.request.formData(), c = await caches.open(SHARE);
+        const f = fd.get('file');
+        const text = ['title', 'text', 'url'].map(k => fd.get(k)).filter(Boolean).join('\n').trim();
+        if (f && f.size) await c.put('/shared-file', new Response(f, { headers: { 'Content-Type': f.type || 'audio/ogg', 'X-Name': encodeURIComponent(f.name || 'Sprachnachricht.opus') } }));
+        else if (text) await c.put('/shared-text', new Response(text, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } }));
+      } catch (err) { console.warn('Teilen fehlgeschlagen:', err); }
+      return Response.redirect('/?share=1', 303);
+    })());
+    return;
+  }
   
   // API-Aufrufe immer live – nie cachen
   if (url.pathname.startsWith('/api/')) {

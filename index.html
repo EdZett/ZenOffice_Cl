@@ -2282,6 +2282,7 @@ async function initProjs(){
   restoreLastVision();
   restoreLastSheet();
   takeDiktat();
+  takeShared();
   syncSoon(1200);
 }
 // Text aus der Diktier-App (/diktat/, Pfeil „ZenOffice“) übernehmen: kommt als /#zo-text=… an.
@@ -2421,6 +2422,26 @@ async function syncNow(manual){
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) syncSoon(600) });
 setInterval(()=>{ if(!document.hidden) syncSoon(100) },120000);
 
+// Aus einer anderen App an ZenOffice geteilt (manifest share_target → sw.js legt es im Cache „zo-share“ ab):
+// Audiodatei → „Sprachnachricht → Text“, Text/Link → neuer Text.
+async function takeShared(){
+  if(!/[?&]share=1/.test(location.search)) return;
+  history.replaceState(null,'',location.pathname);
+  try{
+    const c=await caches.open('zo-share');
+    const fr=await c.match('/shared-file'), tr=await c.match('/shared-text');
+    await c.delete('/shared-file'); await c.delete('/shared-text');
+    if(fr){
+      const blob=await fr.blob(), name=decodeURIComponent(fr.headers.get('X-Name')||'Sprachnachricht.opus');
+      swP('text',document.getElementById('n-text'));
+      audioToText(new File([blob],name,{type:blob.type}));
+    } else if(tr){
+      const t=(await tr.text()).trim(); if(!t) return;
+      newText(); const ed=document.getElementById('editor'); ed.innerText=t; updStat(); pushUndo(); doAutoSave();
+      zoToast('✓ Geteilten Text übernommen',3000);
+    } else zoToast('Es kam nichts an – bitte noch einmal teilen',4000);
+  }catch(e){ console.warn('Geteiltes übernehmen:',e); zoToast('Geteiltes konnte nicht übernommen werden',4000) }
+}
 function blobToDataUrl(b){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(b)})}
 async function urlToBlob(url){const r=await fetch(url);if(!r.ok)throw new Error('Bild nicht ladbar');return await r.blob()}
 async function toDataUrl(url){if(!url||url.startsWith('data:'))return url;return blobToDataUrl(await urlToBlob(url))}
