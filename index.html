@@ -422,6 +422,15 @@ body.light select option:checked{color:#fff}
 .kirow .kib svg{width:19px;height:19px;stroke:currentColor}
 .kib-w{background:rgba(122,158,126,.16);color:var(--sage);border-color:rgba(122,158,126,.4)}
 .kib-c{background:rgba(196,132,122,.16);color:var(--rose);border-color:rgba(196,132,122,.4)}
+.kib-m{background:rgba(201,169,110,.14);color:var(--gold);border-color:rgba(201,169,110,.4)}
+.kib-m.rec{background:rgba(196,132,122,.3);color:#f5d2da;border-color:var(--rose);animation:kipulse 1.4s infinite}
+@keyframes kipulse{50%{box-shadow:0 0 0 7px rgba(196,132,122,0)}0%{box-shadow:0 0 0 0 rgba(196,132,122,.5)}}
+/* blasse Absatznummern am Rand – nur auf dem Bildschirm, nie im Text/Druck */
+#pnums{position:absolute;left:0;top:0;width:0;pointer-events:none;user-select:none}
+#pnums span{position:absolute;left:10px;font:10px/1 var(--fn);color:var(--text3);opacity:.75}
+@media(max-width:600px){#pnums span{left:3px;font-size:9px}}
+@media print{#pnums{display:none}}
+.kichg{background:rgba(201,169,110,.28);border-radius:3px;transition:background 1.2s}
 .kib:hover{filter:brightness(1.25)}
 .kib:active{transform:scale(.94)}
 #wissen-q{font-family:var(--fs);font-style:italic;color:var(--text2);font-size:17px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
@@ -640,12 +649,14 @@ body.light select option:checked{color:#fff}
         <div class="kirow">
           <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           <input id="ki-cmd" type="text" placeholder="Frage oder Änderung eingeben…" enterkeyhint="done" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();kiEnter(this)}">
+          <button class="kib kib-m" id="ki-mic" onclick="kiMic()" title="Befehl sprechen (z. B. „Formuliere den vorherigen Satz förmlicher“) – Fragen beantwortet die KI im Fenster" aria-label="Befehl sprechen"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg></button>
           <button class="kib kib-w" onclick="runKi('wissen')" title="Wissen: Antwort im Fenster" aria-label="Wissen"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
-          <button class="kib kib-c" id="ki-aendern" onclick="runKi('aendern')" title="Ändern: wirkt auf den ganzen Text" aria-label="Ändern"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg></button>
+          <button class="kib kib-c" id="ki-aendern" onclick="runKi('aendern')" title="Ändern: gezielt – auf die Markierung, die Cursor-Stelle oder den genannten Absatz" aria-label="Ändern"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg></button>
         </div>
       </div>
       </div>
       <div class="edwrap">
+        <div id="pnums" aria-hidden="true"></div>
         <div id="editor" contenteditable="true" spellcheck="true" oninput="onEdit()" onclick="if(dictating)stopDic()"></div>
         <div id="imgbar" onmousedown="event.preventDefault()"><button onclick="imgSize(25)">S</button><button onclick="imgSize(50)">M</button><button onclick="imgSize(75)">L</button><button onclick="imgSize(100)">Voll</button><span class="sep"></span><button class="al" data-al="l" onclick="imgAlign('l')" title="Links – Text rechts daneben"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="8" height="8" rx="1"/><line x1="14" y1="6" x2="21" y2="6"/><line x1="14" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><button class="al" data-al="c" onclick="imgAlign('c')" title="Mittig – Text darüber und darunter"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="4" x2="21" y2="4"/><rect x="8" y="8" width="8" height="8" rx="1"/><line x1="3" y1="20" x2="21" y2="20"/></svg></button><button class="al" data-al="r" onclick="imgAlign('r')" title="Rechts – Text links daneben"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="13" y="5" width="8" height="8" rx="1"/><line x1="3" y1="6" x2="10" y2="6"/><line x1="3" y1="12" x2="10" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><span class="sep"></span><button class="del" onclick="imgDel()" title="Bild entfernen">✕</button></div>
         <div id="imgbox"></div><div id="imggrip" title="Ziehen, um die Größe zu ändern"></div>
@@ -1516,7 +1527,9 @@ function flushPremiumMain(){
     try{
       const r=await fetch('/api/stt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audio:wav,lang:dicLang,context:ctxText})});
       if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error||'Fehler '+r.status)}
-      const t=((await r.json()).text||'').trim();
+      let t=((await r.json()).text||'').trim(), cmd='';
+      const sc=t&&splitCmd(t); if(sc){t=sc.before; cmd=sc.cmd}
+      if(cmd){ if(pmM) pmM.buf=[], pmM.len=0; setTimeout(()=>{ if(dictating) stopDic(); else if(span.isConnected&&!span._pend) pmCommit(span); execDictCmd(cmd) },0) }
       if(t&&span.isConnected){
         const first=span.dataset.n==='0';
         span.textContent+=(first?span.dataset.pre:' ')+(first&&span.dataset.cap?t[0].toUpperCase()+t.slice(1):t);
@@ -1646,10 +1659,14 @@ function dicNewSpan(){
 }
 function dicCommit(){
   if(!dicSpan) return;
-  const t=dicSpan.textContent, tn=document.createTextNode(t.trim()?t+' ':'');
+  let t=dicSpan.textContent, cmd='';
+  const sc=splitCmd(t); if(sc){t=sc.before; cmd=sc.cmd}
+  const tn=document.createTextNode(t.trim()?t+' ':'');
   dicSpan.replaceWith(tn); dicSpan=null;
   const r=document.createRange(); r.setStartAfter(tn); r.collapse(true); lastEdRange=r;
   if(t.trim()) onEdit();
+  if(cmd){ if(dictating) stopDic(); execDictCmd(cmd) }
+  else if(cmdPending&&dictating){ zoToast('Befehl? Ich höre …',2000) }
 }
 
 function stopDic(){
@@ -1866,7 +1883,8 @@ async function runKi(mode){
     finally{hideAI()}
     return;
   }
-  // ÄNDERN
+  // ÄNDERN: zuerst gezielt (nur betroffene Stellen); klappt das nicht, wie früher den ganzen Text/die Markierung neu
+  if(await kiPrecise(cmd)) return;
   const rng=(lastEdRange&&!lastEdRange.collapsed&&lastEdRange.toString().trim()&&ed.contains(lastEdRange.commonAncestorContainer))?lastEdRange:null;
   const all=rng?null:edTextWithImgs(ed);
   const text=rng?rng.toString():all.text;
@@ -1889,6 +1907,197 @@ async function runKi(mode){
   }catch(e){alert('Fehler: '+e.message)}
   finally{ed.style.opacity='1';ed.contentEditable='true';hideAI()}
 }
+// ═══════════════════════════════════════
+// GEZIELTE ÄNDERUNGEN, ABSATZNUMMERN, SPRACHBEFEHLE (2026-11-08)
+// Der Text wird in Absätze zerlegt (Zeilenumbruch oder Block = neuer Absatz, leere zählen nicht). Die KI bekommt sie
+// nummeriert, mit Markierung ⟦…⟧ und Cursor ‸, und antwortet als JSON mit genau den Stellen, die sich ändern.
+// Die App tauscht nur diese Stellen aus – der Rest bleibt Buchstabe für Buchstabe (auch Formatierung, Bilder).
+// ═══════════════════════════════════════
+const PBLK=/^(DIV|P|LI|H1|H2|H3|H4|BLOCKQUOTE|PRE|UL|OL|TABLE|TR|TD|TH)$/;
+function edParas(){
+  const ed=document.getElementById('editor'), paras=[];
+  const blkOf=n=>{for(let e=n.parentNode;e&&e!==ed;e=e.parentNode) if(PBLK.test(e.tagName)) return e; return ed};
+  const w=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT);
+  let cur=null, n;
+  const brk=()=>{ if(cur&&cur.text.trim()) paras.push(cur); cur=null };
+  while((n=w.nextNode())){
+    if(n.nodeType===1){ if(n.tagName==='BR'||PBLK.test(n.tagName)) brk(); continue }
+    const b=blkOf(n); if(cur&&cur.blk!==b) brk();
+    if(!cur) cur={blk:b,nodes:[],text:''};
+    cur.nodes.push({node:n,start:cur.text.length}); cur.text+=n.nodeValue;
+  }
+  brk(); return paras;
+}
+// Stelle im Absatz → Knoten + Abstand
+function paraLoc(p,pos){
+  for(const x of p.nodes){const L=x.node.nodeValue.length; if(pos<=x.start+L) return [x.node,Math.max(0,pos-x.start)]}
+  const l=p.nodes[p.nodes.length-1]; return [l.node,l.node.nodeValue.length];
+}
+// DOM-Punkt → [Absatz, Position]
+function pointToPara(paras,container,offset){
+  const r=document.createRange(); try{r.setStart(container,offset)}catch(e){return null}
+  for(let i=0;i<paras.length;i++) for(const x of paras[i].nodes){
+    if(x.node===container) return [i,x.start+offset];
+    if(r.comparePoint(x.node,0)>=0) return [i,x.start];
+  }
+  const i=paras.length-1; return i<0?null:[i,paras[i].text.length];
+}
+// ── blasse Absatznummern am Rand ──
+let pnumT=null;
+function schedPnums(){clearTimeout(pnumT);pnumT=setTimeout(drawPnums,120)}
+function drawPnums(){
+  const box=document.getElementById('pnums'), ed=document.getElementById('editor'); if(!box||!ed) return;
+  if(!ed.offsetParent){box.innerHTML='';return}
+  const wrap=ed.parentNode, wr=wrap.getBoundingClientRect(); let h='';
+  edParas().forEach((p,i)=>{
+    const m=p.text.search(/\S/); const [node,off]=paraLoc(p,Math.max(0,m));
+    const r=document.createRange(); r.setStart(node,off); r.setEnd(node,Math.min(node.nodeValue.length,off+1));
+    const rc=r.getClientRects()[0]; if(!rc) return;
+    h+='<span style="top:'+(rc.top-wr.top+wrap.scrollTop+Math.max(0,(rc.height-10)/2))+'px">'+(i+1)+'</span>';
+  });
+  box.innerHTML=h;
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const ed=document.getElementById('editor');
+  new MutationObserver(schedPnums).observe(ed,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['style']});
+  window.addEventListener('resize',schedPnums); schedPnums();
+});
+// ── gezielte Änderung ──
+async function kiPrecise(cmd){
+  const ed=document.getElementById('editor'), paras=edParas();
+  if(!paras.length){alert('Bitte zuerst Text schreiben.');return true}
+  const marks=paras.map(()=>[]);   // [pos, zeichen]
+  if(lastEdRange&&ed.contains(lastEdRange.commonAncestorContainer)){
+    const a=pointToPara(paras,lastEdRange.startContainer,lastEdRange.startOffset);
+    if(lastEdRange.collapsed){ if(a) marks[a[0]].push([a[1],'‸']) }
+    else{ const b=pointToPara(paras,lastEdRange.endContainer,lastEdRange.endOffset); if(a&&b){marks[a[0]].push([a[1],'⟦']);marks[b[0]].push([b[1],'⟧'])} }
+  }
+  const numbered=paras.map((p,i)=>{let t=p.text; marks[i].sort((x,y)=>y[0]-x[0]).forEach(([pos,c])=>t=t.slice(0,pos)+c+t.slice(pos)); return '['+(i+1)+'] '+t.replace(/\s+/g,' ').trim()}).join('\n');
+  const sys='Du bist ein präziser Texteditor. Der Text der Person ist in nummerierte Absätze geteilt: „[N] Text“. '
+    +'Eine Markierung der Person steht zwischen ⟦ und ⟧, die Cursor-Stelle ist ‸. Bezieht sich die Anweisung auf „das“, „diesen Teil“, „die Markierung“, ist die Markierung gemeint; '
+    +'„vorheriger/letzter Satz“, „hier“, „davor“ beziehen sich auf die Cursor-Stelle (ohne Cursor: auf das Textende). '
+    +'Antworte AUSSCHLIESSLICH mit JSON in dieser Form: {"aenderungen":[{"absatz":N,"alt":"…","neu":"…"}],"neue_absaetze":[{"nach":N,"text":"…"}],"antwort":"…"}. '
+    +'Regeln: Ändere nur, was die Anweisung verlangt. „alt“ ist ein exakter, zusammenhängender Ausschnitt aus Absatz N – Zeichen für Zeichen wie dort, ohne Nummer und ohne ⟦ ⟧ ‸. '
+    +'Für ganze Absätze ist „alt“ der ganze Absatz. Zum Löschen ist „neu“ leer. Betrifft die Anweisung den ganzen Text (z. B. übersetzen, kürzen), liefere je Absatz eine Änderung. '
+    +'„neue_absaetze“ fügt Absätze ein („nach“:0 = ganz am Anfang). Ist es eine Frage ohne Änderungswunsch, liefere nur „antwort“ (Deutsch) und keine Änderungen. Leere Teile weglassen.';
+  inpBusy(true);
+  let r;
+  try{ r=await callClaude('Anweisung: '+cmd+'\n\nText:\n'+numbered,sys,8000) }
+  catch(e){ inpBusy(false); alert('Fehler: '+e.message); return true }
+  inpBusy(false);
+  let j=null; try{ j=JSON.parse(r.slice(r.indexOf('{'),r.lastIndexOf('}')+1)) }catch(e){}
+  if(!j){ console.warn('Gezielte Änderung: keine gültige Antwort, nehme Gesamt-Änderung',r); return false }
+  const clean=t=>String(t||'').replace(/[⟦⟧‸]/g,'');
+  const ops=[]; let miss=0;
+  for(const c of (j.aenderungen||[])){
+    const pi=(c.absatz|0)-1, p=paras[pi], alt=clean(c.alt); if(!p||!alt){miss++;continue}
+    let a=p.text.indexOf(alt), b=a+alt.length;
+    if(a<0){ // Leerzeichen dürfen abweichen
+      const re=new RegExp(alt.trim().split(/\s+/).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('\\s+'));
+      const m=re.exec(p.text); if(m){a=m.index;b=a+m[0].length}
+    }
+    if(a<0){miss++;continue}
+    ops.push({pi,a,b,neu:clean(c.neu)});
+  }
+  const ins=(j.neue_absaetze||[]).filter(x=>x&&clean(x.text).trim()).map(x=>({nach:x.nach|0,text:clean(x.text)}));
+  if(!ops.length&&!ins.length){
+    if(j.antwort){ openWissen(cmd,j.antwort); document.getElementById('ki-cmd').value=''; return true }
+    zoToast(miss?'Die KI hat die gemeinte Stelle nicht eindeutig gefunden – nichts geändert. Bitte genauer sagen oder die Stelle markieren.':'Die KI wusste nicht, was sie ändern soll – bitte genauer formulieren.',5000);
+    return true;
+  }
+  pushUndo();
+  const mk=t=>{const sp=document.createElement('span');sp.className='kichg';sp.textContent=t;return sp};
+  // erst neue Absätze (hinter dem Absatz, ändert dessen Text nicht), dann Ersetzungen von hinten nach vorn
+  ins.sort((x,y)=>y.nach-x.nach).forEach(x=>{
+    const p=paras[x.nach-1];
+    if(!p){ const f=ed.firstChild; ed.insertBefore(document.createElement('br'),f); ed.insertBefore(mk(x.text),ed.firstChild); return }
+    if(p.blk!==ed&&p.blk.parentNode){ const el=document.createElement(p.blk.tagName==='LI'?'LI':p.blk.tagName==='P'?'P':'DIV'); el.appendChild(mk(x.text)); p.blk.after(el) }
+    else{ // Leerzeile übernehmen, wenn die Absätze im Text durch Leerzeilen getrennt sind
+      const last=p.nodes[p.nodes.length-1].node, nx=last.nextSibling, gap=nx&&nx.nodeName==='BR'&&nx.nextSibling&&nx.nextSibling.nodeName==='BR';
+      const sp=mk(x.text); last.after(sp); sp.before(document.createElement('br')); if(gap) sp.before(document.createElement('br')) }
+  });
+  ops.sort((x,y)=>y.pi-x.pi||y.a-x.a).forEach(o=>{
+    const p=paras[o.pi], [sn,so]=paraLoc(p,o.a), [en,eo]=paraLoc(p,o.b);
+    const rg=document.createRange(); rg.setStart(sn,so); rg.setEnd(en,eo); rg.deleteContents();
+    if(o.neu) rg.insertNode(mk(o.neu));
+  });
+  // Markierung der Änderungen nach kurzer Zeit wieder entfernen (nicht mitspeichern)
+  setTimeout(()=>{ed.querySelectorAll('span.kichg').forEach(sp=>sp.style.background='transparent');
+    setTimeout(()=>{ed.querySelectorAll('span.kichg').forEach(sp=>sp.replaceWith(...sp.childNodes)); ed.normalize(); onEdit()},1300)},2200);
+  ed.normalize(); lastEdRange=null; document.getElementById('ki-cmd').value='';
+  updStat(); pushUndo(); onEdit();
+  const n=ops.length+ins.length;
+  zoToast('✓ '+n+(n===1?' Stelle':' Stellen')+' geändert'+(miss?' · '+miss+' nicht gefunden':'')+' – „Zurück“ macht es rückgängig',3500);
+  if(j.antwort) openWissen(cmd,j.antwort);
+  return true;
+}
+function inpBusy(on){
+  const ed=document.getElementById('editor');
+  if(on){showAI('Text wird geändert…'); ed.style.opacity='.4'; ed.contentEditable='false'}
+  else{hideAI(); ed.style.opacity='1'; ed.contentEditable='true'}
+}
+// ── Befehl sprechen (Mikrofon in der KI-Leiste) ──
+// Premium (oder kein Browser-Diktat vorhanden): eigene Aufnahme → Gemini; sonst Spracherkennung des Browsers.
+// Ende: erneut tippen oder 2,5 s Stille nach dem Sprechen (höchstens 40 s). Danach läuft der Befehl wie „Ändern“.
+let kiRec=null;
+async function kiMic(){
+  if(kiRec){kiRec.stop();return}
+  const btn=document.getElementById('ki-mic'), inp=document.getElementById('ki-cmd');
+  if(dictating) stopDic();
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const done=t=>{ kiRec=null; btn.classList.remove('rec'); t=(t||'').trim(); if(!t){zoToast('Nichts verstanden – bitte noch einmal');return}
+    inp.value=t[0].toUpperCase()+t.slice(1); runVoiceCmd(inp.value) };
+  btn.classList.add('rec'); inp.value=''; inp.placeholder='Ich höre … (Befehl sprechen, dann kurz still sein)';
+  const back=()=>{inp.placeholder='Frage oder Änderung eingeben…'};
+  if(dicEngine!=='premium'&&SR){
+    const r=new SR(); r.lang=dicLang; r.continuous=false; r.interimResults=true; let txt='';
+    r.onresult=e=>{txt=[...e.results].map(x=>x[0].transcript).join(' '); inp.value=txt};
+    r.onend=()=>{back(); done(txt)}; r.onerror=e=>{if(e.error==='not-allowed') zoToast('Mikrofon-Zugriff im Browser erlauben')};
+    kiRec={stop:()=>r.stop()}; try{r.start()}catch(e){back();done('')}
+    return;
+  }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:false,noiseSuppression:true,autoGainControl:true}});
+    let ctx; try{ctx=new AudioContext({sampleRate:16000})}catch(e){ctx=new AudioContext()}
+    const src=ctx.createMediaStreamSource(stream), proc=ctx.createScriptProcessor(4096,1,1);
+    const buf=[]; let len=0, speech=0, silent=0, ended=false;
+    const finish=async()=>{
+      if(ended) return; ended=true;
+      try{proc.disconnect();src.disconnect();stream.getTracks().forEach(t=>t.stop());ctx.close()}catch(e){}
+      back(); inp.placeholder='Erkenne Befehl …';
+      if(speech<0.3){back();done('');return}
+      try{
+        const r=await fetch('/api/stt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audio:dicWav16(buf,len,ctx.sampleRate),lang:dicLang})});
+        const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'Fehler '+r.status);
+        back(); done(j.text);
+      }catch(e){back(); kiRec=null; btn.classList.remove('rec'); zoToast('Erkennung ging nicht: '+e.message,4000)}
+    };
+    proc.onaudioprocess=e=>{
+      if(ended) return;
+      const d=new Float32Array(e.inputBuffer.getChannelData(0)), dur=d.length/ctx.sampleRate;
+      let q=0; for(let i=0;i<d.length;i++) q+=d[i]*d[i];
+      if(Math.sqrt(q/d.length)>0.012){speech+=dur;silent=0} else silent+=dur;
+      buf.push(d); len+=d.length;
+      if((speech>0.5&&silent>2.5)||len/ctx.sampleRate>40||(!speech&&silent>8)) finish();
+    };
+    src.connect(proc); proc.connect(ctx.destination); try{ctx.resume()}catch(e){}
+    kiRec={stop:finish};
+  }catch(e){ back(); kiRec=null; btn.classList.remove('rec'); zoToast(e.name==='NotAllowedError'?'Mikrofon-Zugriff im Browser erlauben':'Aufnahme ging nicht: '+e.message,4000) }
+}
+// Gesprochener Befehl → wie „Ändern“ (gezielt); Fragen beantwortet die KI im Fenster
+function runVoiceCmd(t){ document.getElementById('ki-cmd').value=t; runKi('aendern') }
+// „Achtung Befehl“ mitten im Diktat: was davor steht, bleibt Diktat; was danach kommt, ist der Befehl
+const CMD_RE=/(^|[\s.,;:!?])achtung[\s,.:;!?-]*befehl(e|en)?\b[\s,.:;!?-]*/i;
+let cmdPending=false;
+function splitCmd(t){
+  if(cmdPending){cmdPending=false; return {before:'',cmd:t}}
+  const m=CMD_RE.exec(t); if(!m) return null;
+  const before=t.slice(0,m.index+m[1].length).replace(/[\s,;:-]+$/,''), cmd=t.slice(m.index+m[0].length).trim();
+  if(!cmd) cmdPending=true;   // Befehl kommt erst im nächsten Stück (Huawei-Browser trennt früh)
+  return {before,cmd};
+}
+function execDictCmd(cmd){ if(!cmd) return; zoToast('Befehl: '+cmd,2500); setTimeout(()=>runVoiceCmd(cmd[0].toUpperCase()+cmd.slice(1)),60) }
+
 function copyText(){
   const sel=window.getSelection();
   const selTxt=sel?.toString();
