@@ -596,6 +596,7 @@ body.light select option:checked{color:#fff}
         <a class="tbb ic" id="audio-dl" style="display:none;text-decoration:none" title="Vorgelesenen Text als Audio herunterladen" aria-label="Audio herunterladen"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>
         <button class="tbb zen-dic" id="dicbtn" onclick="toggleDic()" style="display:none"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Diktat</button>
         <button class="tbb ic zen-lang" id="diclang" onclick="toggleDicLang()" title="Diktatsprache" style="display:none;font-weight:700">DE</button>
+        <button class="tbb zen-eng" id="diceng" onclick="toggleDicEngine()" title="Spracherkennung: Browser (kostenlos, Text sofort) oder Premium (Google Gemini, genauer, nimmt durchgehend auf, kostet etwas)" style="display:none">Browser</button>
       </div></div></div>
 
       <div class="kibar">
@@ -825,9 +826,10 @@ window.addEventListener('load',()=>{
   // Diktat auf allen Geräten; auf Handy/Tablet als durchsichtiger runder Knopf, der rechts im unteren Drittel schwebt
   const isTouch=matchMedia('(pointer:coarse)').matches;
   if(isTouch) document.body.classList.add('touch');
-  if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
+  if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window || navigator.mediaDevices?.getUserMedia){
     const db=document.getElementById('dicbtn');
     db.style.display='flex'; document.getElementById('diclang').style.display='flex';
+    document.getElementById('diceng').style.display='flex'; updDicEngine();
     if(isTouch){db.classList.add('dicbig'); db.title='Diktat starten/beenden'; document.getElementById('text-panel').appendChild(db)}
   }
   if(isTouch){keepAppInView(); initToolsAutoHide()}
@@ -1390,9 +1392,116 @@ async function toggleSpeak(){
 // DIKTAT
 // ═══════════════════════════════════════
 function toggleDic(){
-  if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('Bitte Chrome verwenden.');return}
   if(dictating){stopDic();return}
+  if(dicEngine==='premium'){startPremiumMain();return}
+  if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('Diese Spracherkennung gibt es hier nicht – bitte „Premium“ wählen oder Chrome verwenden.');return}
   startDicEngine();
+}
+
+// ═══════════════════════════════════════
+// DIKTAT PREMIUM (wie in der Diktier-App): eigene Aufnahme → Gemini (api/stt.js)
+// Der Huawei-Browser schaltet seine Spracherkennung nach jeder kleinen Pause ab (Wörter gehen verloren);
+// Premium nimmt durchgehend auf. Die Wahl teilt sich ZenOffice mit der Diktier-App (localStorage zo_dk_engine).
+// Text landet an der Schreibstelle in einem Platzhalter span.dicl, der beim Ende festgeschrieben wird.
+// ═══════════════════════════════════════
+let dicEngine='browser';
+try{dicEngine=localStorage.getItem('zo_dk_engine')==='premium'?'premium':'browser'}catch(e){}
+function updDicEngine(){const b=document.getElementById('diceng');if(!b)return;b.textContent=dicEngine==='premium'?'Premium':'Browser';b.style.color=dicEngine==='premium'?'var(--gold)':''}
+function toggleDicEngine(){
+  if(dictating) stopDic();
+  dicEngine=dicEngine==='premium'?'browser':'premium'; updDicEngine();
+  try{localStorage.setItem('zo_dk_engine',dicEngine)}catch(e){}
+  zoToast(dicEngine==='premium'?'Premium: Google Gemini schreibt mit – durchgehend, genauer, kostet pro Aufnahme etwas':'Browser: Spracherkennung des Browsers – kostenlos, Text erscheint sofort',3500);
+}
+let pmM=null, pmSpan=null, pmChain=Promise.resolve(), pmBusy=0, pmGen=0;
+async function startPremiumMain(){
+  if(!navigator.mediaDevices?.getUserMedia){alert('Aufnehmen geht in diesem Browser nicht.');return}
+  const ed=document.getElementById('editor'), leg=document.getElementById('dicleg');
+  dictating=true; document.getElementById('dicbtn').classList.add('rec');
+  leg.classList.add('vis'); leg.classList.remove('fade');
+  document.getElementById('dicint').textContent='Premium hört zu …';
+  if(document.body.classList.contains('touch')){ed.setAttribute('inputmode','none'); ed.blur()}
+  // Platzhalter an der Schreibstelle (wie beim Browser-Diktat)
+  dicNewSpan(); pmSpan=dicSpan; dicSpan=null; pmSpan.dataset.n='0';
+  const gen=++pmGen;
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:false,noiseSuppression:true,autoGainControl:true}});
+    if(!dictating||gen!==pmGen){stream.getTracks().forEach(t=>t.stop());return}
+    let ctx; try{ctx=new AudioContext({sampleRate:16000})}catch(e){ctx=new (window.AudioContext||window.webkitAudioContext)()}
+    const src=ctx.createMediaStreamSource(stream), proc=ctx.createScriptProcessor(4096,1,1);
+    pmM={stream,ctx,src,proc,buf:[],len:0,speech:0,silent:0,quiet:0,gen};
+    proc.onaudioprocess=e=>{
+      if(!pmM) return;
+      const d=new Float32Array(e.inputBuffer.getChannelData(0)), dur=d.length/ctx.sampleRate;
+      let q=0; for(let i=0;i<d.length;i++) q+=d[i]*d[i];
+      if(Math.sqrt(q/d.length)>0.012){pmM.speech+=dur;pmM.silent=0;pmM.quiet=0} else {pmM.silent+=dur;pmM.quiet+=dur}
+      pmM.buf.push(d); pmM.len+=d.length;
+      if(!pmM.speech){ while(pmM.buf.length>1&&(pmM.len-pmM.buf[0].length)/ctx.sampleRate>1) pmM.len-=pmM.buf.shift().length }
+      else if((pmM.silent>2.5&&pmM.speech>15)||pmM.len/ctx.sampleRate>55) flushPremiumMain();
+      if(pmM&&pmM.quiet>10){ zoToast('Diktat angehalten nach 10 Sekunden Stille'); stopDic() }  // wie in der Diktier-App
+    };
+    src.connect(proc); proc.connect(ctx.destination);
+    try{ctx.resume().catch(()=>{})}catch(e){}
+  }catch(e){
+    console.warn('Premium-Diktat Fehler:',e); stopDic();
+    alert(e.name==='NotAllowedError'?'Mikrofon-Zugriff im Browser erlauben.':'Aufnahme ging nicht: '+e.message);
+  }
+}
+function flushPremiumMain(){
+  if(!pmM||!pmM.len) return;
+  const parts=pmM.buf, len=pmM.len, rate=pmM.ctx.sampleRate, had=pmM.speech>0.3, span=pmSpan;
+  pmM.buf=[]; pmM.len=0; pmM.speech=0; pmM.silent=0;
+  if(!had||!span) return;
+  const wav=dicWav16(parts,len,rate), rg=document.createRange();
+  rg.setStart(document.getElementById('editor'),0); rg.setEndBefore(span);
+  const ctxText=(rg.toString()+span.textContent).trim().slice(-600);   // Text vor der Schreibstelle als Zusammenhang
+  span._pend=(span._pend||0)+1; pmBusy++; document.getElementById('dicint').textContent='Premium hört zu … (erkenne Sprache)';
+  pmChain=pmChain.then(async()=>{
+    try{
+      const r=await fetch('/api/stt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audio:wav,lang:dicLang,context:ctxText})});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error||'Fehler '+r.status)}
+      const t=((await r.json()).text||'').trim();
+      if(t&&span.isConnected){
+        const first=span.dataset.n==='0';
+        span.textContent+=(first?span.dataset.pre:' ')+(first&&span.dataset.cap?t[0].toUpperCase()+t.slice(1):t);
+        span.dataset.n='1'; onEdit();
+      }
+    }catch(e){ console.warn('Premium-Erkennung Fehler:',e); zoToast('Premium-Erkennung ging nicht: '+e.message,4000) }
+    finally{ pmBusy--; span._pend--; if(!span._pend&&span!==pmSpan) pmCommit(span); else if(dictating) document.getElementById('dicint').textContent='Premium hört zu …' }
+  });
+}
+function pmCommit(span){
+  if(!span||!span.isConnected) return;
+  const t=span.textContent, tn=document.createTextNode(t.trim()?t+' ':'');
+  span.replaceWith(tn);
+  const r=document.createRange(); r.setStartAfter(tn); r.collapse(true); lastEdRange=r;
+  if(t.trim()) onEdit();
+}
+function stopPremiumMain(){
+  if(pmM){
+    flushPremiumMain();
+    try{pmM.proc.disconnect();pmM.src.disconnect();pmM.stream.getTracks().forEach(t=>t.stop());pmM.ctx.close()}catch(e){}
+    pmM=null;
+  }
+  const sp=pmSpan; pmSpan=null; if(!sp) return;
+  if(!sp._pend) pmCommit(sp); else zoToast('Sprache wird noch erkannt …');   // sonst schreibt die letzte Antwort fest
+}
+// Float-Stücke → 16 kHz mono WAV (Base64), Lautstärke nach Sprachpegel angeglichen (wie toWav16 in der Diktier-App)
+function dicWav16(parts,len,rate){
+  const R=16000, all=new Float32Array(len); let o=0; parts.forEach(p=>{all.set(p,o);o+=p.length});
+  const fr=Math.max(1,Math.round(rate/50)), lv=[];
+  for(let i=0;i+fr<=len;i+=fr){let q=0;for(let j=i;j<i+fr;j++)q+=all[j]*all[j];lv.push(Math.sqrt(q/fr))}
+  lv.sort((a,b)=>a-b);
+  const sp=lv.length?lv[Math.floor(lv.length*0.9)]:0, g=sp>1e-4?Math.min(30,0.2/sp):1;
+  if(g>1.05) for(let i=0;i<len;i++) all[i]=Math.tanh(all[i]*g);
+  const n=Math.floor(len*R/rate), dv=new DataView(new ArrayBuffer(44+n*2)), k=rate/R;
+  const w=(p,t)=>{for(let i=0;i<t.length;i++)dv.setUint8(p+i,t.charCodeAt(i))};
+  w(0,'RIFF');dv.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);
+  dv.setUint32(24,R,true);dv.setUint32(28,R*2,true);dv.setUint16(32,2,true);dv.setUint16(34,16,true);w(36,'data');dv.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){const a=Math.floor(i*k), b=Math.min(len,Math.max(a+1,Math.floor((i+1)*k)));let t=0;for(let j=a;j<b;j++)t+=all[j];
+    const v=Math.max(-1,Math.min(1,t/(b-a)));dv.setInt16(44+i*2,v<0?v*0x8000:v*0x7FFF,true)}
+  const u=new Uint8Array(dv.buffer); let bin=''; for(let i=0;i<u.length;i+=0x8000) bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));
+  return btoa(bin);
 }
 
 let dicLang='de-DE';
@@ -1490,6 +1599,7 @@ function dicCommit(){
 function stopDic(){
   dictating=false;
   dicCommit();
+  stopPremiumMain();
   document.getElementById('editor').removeAttribute('inputmode');
   if(recognition){
     recognition.onend=null;
